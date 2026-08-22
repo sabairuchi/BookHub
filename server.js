@@ -29,7 +29,7 @@ const razorpay = new Razorpay({
 
 // Middlewares
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://book-hub-chi-eight.vercel.app'],
   credentials: true
 }));
 app.use(express.json());
