@@ -1,0 +1,500 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Admin User",
+      "email": "admin@bookhub.com",
+      "password": "$2b$10$IrPbYcmn23jzuPFjVqKPs.m7nK3d9Dzec6vbTW4p6r7u/rRq81wlS",
+      "isAdmin": 1,
+      "status": "Active",
+      "createdAt": "2026-08-22T10:19:59.308Z"
+    },
+    {
+      "id": 2,
+      "name": "John Doe",
+      "email": "john@example.com",
+      "password": "$2b$10$7h4vkNceRNhu.PoMZc2HQu9Pz/hKDc03I02TV/lRHNTgqwVNNrjIi",
+      "isAdmin": 0,
+      "status": "Active",
+      "createdAt": "2026-08-22T10:19:59.546Z"
+    },
+    {
+      "id": 3,
+      "name": "Jane Smith",
+      "email": "jane@example.com",
+      "password": "$2b$10$Ql4EWkDzqKdSp66bCl/l9.VO4T.qx74OUEgLgXgzb.GSIm5O.qekG",
+      "isAdmin": 0,
+      "status": "Active",
+      "createdAt": "2026-08-22T10:19:59.786Z"
+    },
+    {
+      "id": 4,
+      "name": "Mike Johnson",
+      "email": "mike@example.com",
+      "password": "$2b$10$3ISesBeDulP6doADv9sIBuAnzZsjoEhr8NwaaIMGU.rzA71jEjuCe",
+      "isAdmin": 0,
+      "status": "Active",
+      "createdAt": "2026-08-22T10:20:00.218Z"
+    },
+    {
+      "id": 5,
+      "name": "Sarah Williams",
+      "email": "sarah@example.com",
+      "password": "$2b$10$ojDSVpTHmKiPKJWxaG/Xh.M9SYTKGbdr980U9xCYmm3ufxE2D6/ya",
+      "isAdmin": 0,
+      "status": "Disabled",
+      "createdAt": "2026-08-22T10:20:01.255Z"
+    },
+    {
+      "id": 6,
+      "name": "David Brown",
+      "email": "david@example.com",
+      "password": "$2b$10$65wvL98jZ8/C0q2.C3mGl.0OaEPlLP3y0Gsqmt4Ouv0qeYtB0bpZu",
+      "isAdmin": 0,
+      "status": "Active",
+      "createdAt": "2026-08-22T10:20:02.139Z"
+    }
+  ],
+  "books": [
+    {
+      "id": 1,
+      "title": "The Silent Patient",
+      "author": "Alex Michaelides",
+      "category": "Mystery & Thriller",
+      "price": 18.99,
+      "description": "A psychological thriller about a woman who stops speaking after a shocking crime.",
+      "rating": 4.5,
+      "image": "https://images.unsplash.com/photo-1587876931567-564ce588bfbd?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 1,
+      "isNewArrival": 0,
+      "isPublishedByUs": 0,
+      "stock": 10
+    },
+    {
+      "id": 2,
+      "title": "Atomic Habits",
+      "author": "James Clear",
+      "category": "Self-Help",
+      "price": 22.99,
+      "description": "Practical strategies for building good habits and breaking bad ones.",
+      "rating": 4.9,
+      "image": "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 1,
+      "isNewArrival": 0,
+      "isPublishedByUs": 0,
+      "stock": 10
+    },
+    {
+      "id": 3,
+      "title": "Rich Dad Poor Dad",
+      "author": "Robert T. Kiyosaki",
+      "category": "Finance",
+      "price": 17.99,
+      "description": "Learn the mindset and principles behind financial independence.",
+      "rating": 4.7,
+      "image": "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 1,
+      "isNewArrival": 0,
+      "isPublishedByUs": 0,
+      "stock": 10
+    },
+    {
+      "id": 4,
+      "title": "The Psychology of Money",
+      "author": "Morgan Housel",
+      "category": "Finance",
+      "price": 19.99,
+      "description": "Timeless lessons on wealth, investing, and financial behavior.",
+      "rating": 4.8,
+      "image": "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 1,
+      "isNewArrival": 1,
+      "isPublishedByUs": 0,
+      "stock": 10
+    },
+    {
+      "id": 5,
+      "title": "Ikigai",
+      "author": "Héctor García & Francesc Miralles",
+      "category": "Self-Help",
+      "price": 16.99,
+      "description": "Discover the Japanese philosophy of living a meaningful life.",
+      "rating": 4.6,
+      "image": "https://images.unsplash.com/photo-1499209974431-9dddcece7f88?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 0,
+      "isNewArrival": 1,
+      "isPublishedByUs": 0,
+      "stock": 10
+    },
+    {
+      "id": 6,
+      "title": "The Alchemist",
+      "author": "Paulo Coelho",
+      "category": "Fiction",
+      "price": 15.99,
+      "description": "A timeless story about dreams, destiny, and self-discovery.",
+      "rating": 4.8,
+      "image": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 1,
+      "isNewArrival": 0,
+      "isPublishedByUs": 0,
+      "stock": 10
+    },
+    {
+      "id": 7,
+      "title": "Harry Potter and the Philosopher's Stone",
+      "author": "J.K. Rowling",
+      "category": "Fantasy",
+      "price": 24.99,
+      "description": "The magical beginning of Harry Potter's unforgettable journey.",
+      "rating": 4.9,
+      "image": "https://images.unsplash.com/photo-1626244670267-33a7adfc783d?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 1,
+      "isNewArrival": 0,
+      "isPublishedByUs": 0,
+      "stock": 10
+    },
+    {
+      "id": 8,
+      "title": "The Hobbit",
+      "author": "J.R.R. Tolkien",
+      "category": "Fantasy",
+      "price": 21.99,
+      "description": "Bilbo Baggins embarks on an epic adventure through Middle-earth.",
+      "rating": 4.9,
+      "image": "/images/the_hobbit_cover.png",
+      "isBestSeller": 1,
+      "isNewArrival": 0,
+      "isPublishedByUs": 0,
+      "stock": 10
+    },
+    {
+      "id": 9,
+      "title": "Sapiens",
+      "author": "Yuval Noah Harari",
+      "category": "History",
+      "price": 23.99,
+      "description": "A fascinating history of humankind from ancient times to today.",
+      "rating": 4.7,
+      "image": "https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 0,
+      "isNewArrival": 0,
+      "isPublishedByUs": 0,
+      "stock": 10
+    },
+    {
+      "id": 10,
+      "title": "Deep Work",
+      "author": "Cal Newport",
+      "category": "Productivity",
+      "price": 20.99,
+      "description": "Master the ability to focus and produce high-quality work.",
+      "rating": 4.7,
+      "image": "https://images.unsplash.com/photo-1555448248-2571daf6344b?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 0,
+      "isNewArrival": 1,
+      "isPublishedByUs": 0,
+      "stock": 10
+    },
+    {
+      "id": 11,
+      "title": "Think and Grow Rich",
+      "author": "Napoleon Hill",
+      "category": "Business",
+      "price": 18.99,
+      "description": "Classic principles for achieving success and wealth.",
+      "rating": 4.6,
+      "image": "https://images.unsplash.com/photo-1553729459-efe14ef6055d?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 0,
+      "isNewArrival": 0,
+      "isPublishedByUs": 0,
+      "stock": 10
+    },
+    {
+      "id": 12,
+      "title": "The 48 Laws of Power",
+      "author": "Robert Greene",
+      "category": "Business",
+      "price": 24.99,
+      "description": "Insights into influence, strategy, and leadership.",
+      "rating": 4.6,
+      "image": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 1,
+      "isNewArrival": 0,
+      "isPublishedByUs": 0,
+      "stock": 10
+    },
+    {
+      "id": 13,
+      "title": "Can't Hurt Me",
+      "author": "David Goggins",
+      "category": "Motivation",
+      "price": 22.99,
+      "description": "Inspiring memoir about resilience and mental toughness.",
+      "rating": 4.9,
+      "image": "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 0,
+      "isNewArrival": 1,
+      "isPublishedByUs": 0,
+      "stock": 10
+    },
+    {
+      "id": 14,
+      "title": "The Lean Startup",
+      "author": "Eric Ries",
+      "category": "Business",
+      "price": 21.99,
+      "description": "A modern approach to building successful startups.",
+      "rating": 4.7,
+      "image": "https://images.unsplash.com/photo-1556761175-5973dc0f32b7?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 0,
+      "isNewArrival": 0,
+      "isPublishedByUs": 0,
+      "stock": 10
+    },
+    {
+      "id": 15,
+      "title": "Clean Code",
+      "author": "Robert C. Martin",
+      "category": "Programming",
+      "price": 34.99,
+      "description": "Best practices for writing clean, maintainable software.",
+      "rating": 4.8,
+      "image": "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 1,
+      "isNewArrival": 0,
+      "isPublishedByUs": 0,
+      "stock": 10
+    },
+    {
+      "id": 16,
+      "title": "The Pragmatic Programmer",
+      "author": "Andrew Hunt & David Thomas",
+      "category": "Programming",
+      "price": 36.99,
+      "description": "Essential knowledge for software developers of all levels.",
+      "rating": 4.8,
+      "image": "https://images.unsplash.com/photo-1537432376769-00f5c2f4c8d2?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 0,
+      "isNewArrival": 0,
+      "isPublishedByUs": 0,
+      "stock": 10
+    },
+    {
+      "id": 17,
+      "title": "Dune",
+      "author": "Frank Herbert",
+      "category": "Science Fiction",
+      "price": 25.99,
+      "description": "An epic science fiction novel set on the desert planet Arrakis.",
+      "rating": 4.8,
+      "image": "/images/dune_cover.png",
+      "isBestSeller": 0,
+      "isNewArrival": 0,
+      "isPublishedByUs": 0,
+      "stock": 10
+    },
+    {
+      "id": 18,
+      "title": "The Midnight Library",
+      "author": "Matt Haig",
+      "category": "Fiction",
+      "price": 18.99,
+      "description": "A moving novel about choices, regrets, and second chances.",
+      "rating": 4.8,
+      "image": "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 0,
+      "isNewArrival": 0,
+      "isPublishedByUs": 0,
+      "stock": 10
+    },
+    {
+      "id": 19,
+      "title": "Educated",
+      "author": "Tara Westover",
+      "category": "Biography",
+      "price": 19.99,
+      "description": "A powerful memoir about education, resilience, and family.",
+      "rating": 4.7,
+      "image": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 0,
+      "isNewArrival": 0,
+      "isPublishedByUs": 0,
+      "stock": 10
+    },
+    {
+      "id": 20,
+      "title": "Becoming",
+      "author": "Michelle Obama",
+      "category": "Biography",
+      "price": 24.99,
+      "description": "The inspiring memoir of the former First Lady of the United States.",
+      "rating": 4.9,
+      "image": "https://images.unsplash.com/photo-1455390582262-044cdead27d8?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 1,
+      "isNewArrival": 0,
+      "isPublishedByUs": 0,
+      "stock": 10
+    },
+    {
+      "id": 21,
+      "title": "Mastering JavaScript",
+      "author": "Book Hub",
+      "category": "Programming",
+      "price": 29.99,
+      "description": "A practical guide from beginner to advanced JavaScript.",
+      "rating": 4.8,
+      "image": "https://images.unsplash.com/photo-1550439062-609e1531270e?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 0,
+      "isNewArrival": 1,
+      "isPublishedByUs": 1,
+      "stock": 10
+    },
+    {
+      "id": 22,
+      "title": "Build Modern React Apps",
+      "author": "Book Hub",
+      "category": "Programming",
+      "price": 32.99,
+      "description": "Learn React by building real-world applications.",
+      "rating": 4.9,
+      "image": "https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 1,
+      "isNewArrival": 1,
+      "isPublishedByUs": 1,
+      "stock": 10
+    },
+    {
+      "id": 23,
+      "title": "AI for Beginners",
+      "author": "Book Hub",
+      "category": "Artificial Intelligence",
+      "price": 34.99,
+      "description": "Understand AI, LLMs, and modern tools with hands-on examples.",
+      "rating": 4.7,
+      "image": "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 0,
+      "isNewArrival": 1,
+      "isPublishedByUs": 1,
+      "stock": 10
+    },
+    {
+      "id": 24,
+      "title": "Startup Blueprint",
+      "author": "Book Hub",
+      "category": "Business",
+      "price": 24.99,
+      "description": "A complete guide to launching and growing a successful startup.",
+      "rating": 4.8,
+      "image": "https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 0,
+      "isNewArrival": 1,
+      "isPublishedByUs": 1,
+      "stock": 10
+    },
+    {
+      "id": 25,
+      "title": "Productivity Secrets",
+      "author": "Book Hub",
+      "category": "Self-Help",
+      "price": 18.99,
+      "description": "Proven techniques to improve focus and achieve more every day.",
+      "rating": 4.6,
+      "image": "https://images.unsplash.com/photo-1507537297725-24a1c029d3ca?auto=format&fit=crop&q=80&w=600",
+      "isBestSeller": 0,
+      "isNewArrival": 0,
+      "isPublishedByUs": 1,
+      "stock": 10
+    }
+  ],
+  "categories": [
+    {
+      "id": 1,
+      "name": "Mystery & Thriller",
+      "count": 150,
+      "image": "https://images.unsplash.com/photo-1587876931567-564ce588bfbd?auto=format&fit=crop&q=80&w=600"
+    },
+    {
+      "id": 2,
+      "name": "Self-Help",
+      "count": 320,
+      "image": "https://images.unsplash.com/photo-1499209974431-9dddcece7f88?auto=format&fit=crop&q=80&w=600"
+    },
+    {
+      "id": 3,
+      "name": "Finance",
+      "count": 180,
+      "image": "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&q=80&w=600"
+    },
+    {
+      "id": 4,
+      "name": "Fiction",
+      "count": 1240,
+      "image": "/images/fiction_category.png"
+    },
+    {
+      "id": 5,
+      "name": "Fantasy",
+      "count": 720,
+      "image": "https://images.unsplash.com/photo-1606161290874-984bb07c870a?auto=format&fit=crop&q=80&w=600"
+    },
+    {
+      "id": 6,
+      "name": "History",
+      "count": 450,
+      "image": "https://images.unsplash.com/photo-1461360370896-922624d12aa1?auto=format&fit=crop&q=80&w=600"
+    },
+    {
+      "id": 7,
+      "name": "Productivity",
+      "count": 210,
+      "image": "https://images.unsplash.com/photo-1555448248-2571daf6344b?auto=format&fit=crop&q=80&w=600"
+    },
+    {
+      "id": 8,
+      "name": "Business",
+      "count": 420,
+      "image": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=600"
+    },
+    {
+      "id": 9,
+      "name": "Motivation",
+      "count": 160,
+      "image": "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80&w=600"
+    },
+    {
+      "id": 10,
+      "name": "Programming",
+      "count": 310,
+      "image": "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=600"
+    },
+    {
+      "id": 11,
+      "name": "Science Fiction",
+      "count": 380,
+      "image": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=600"
+    },
+    {
+      "id": 12,
+      "name": "Biography",
+      "count": 290,
+      "image": "https://images.unsplash.com/photo-1455390582262-044cdead27d8?auto=format&fit=crop&q=80&w=600"
+    },
+    {
+      "id": 13,
+      "name": "Artificial Intelligence",
+      "count": 90,
+      "image": "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=600"
+    },
+    {
+      "id": 14,
+      "name": "Romance",
+      "count": 650,
+      "image": "https://images.unsplash.com/photo-1518621736915-f3b1c41bfd00?auto=format&fit=crop&q=80&w=600"
+    }
+  ],
+  "cart_items": [],
+  "wishlist_items": [],
+  "orders": [],
+  "order_items": []
+}
