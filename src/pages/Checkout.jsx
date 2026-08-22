@@ -114,19 +114,89 @@ const Checkout = () => {
     e.preventDefault();
     if (validateForm()) {
       setIsSubmitting(true);
+      
+      const finalTotal = cartTotal + shippingCost - discount;
+      const orderData = {
+        ...formData,
+        total: finalTotal,
+        couponCode,
+        items: cart.map(item => ({ id: item.id, quantity: item.quantity, price: item.price }))
+      };
+
+      // 1. Cash on Delivery Flow
+      if (formData.paymentMethod === 'cod') {
+        try {
+          const newOrder = await orderAPI.createOrder(orderData);
+          await clearCart();
+          navigate('/order-success', { state: { order: newOrder } });
+        } catch (err) {
+          console.error("Error creating COD order:", err);
+          alert(err.response?.data?.message || 'Failed to place order. Please try again.');
+          setIsSubmitting(false);
+        }
+        return;
+      }
+
+      // 2. Razorpay Payment Gateway Flow
       try {
-        const finalTotal = cartTotal + shippingCost - discount;
-        const orderData = {
-          ...formData,
-          total: finalTotal,
-          items: cart.map(item => ({ id: item.id, quantity: item.quantity, price: item.price }))
+        if (!window.Razorpay) {
+          alert("Payment gateway SDK failed to load. Please check your internet connection and try again.");
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Call backend to create Razorpay Order
+        const rzpSession = await orderAPI.createRazorpayOrder({
+          shippingMethod: formData.shippingMethod,
+          couponCode: couponCode
+        });
+
+        const options = {
+          key: rzpSession.key_id,
+          amount: rzpSession.amount,
+          currency: rzpSession.currency,
+          name: "BookHub",
+          description: "Purchase of Books",
+          order_id: rzpSession.order_id,
+          handler: async function (response) {
+            try {
+              // Send payment details to backend for verification
+              const paymentDetails = {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                checkoutData: orderData
+              };
+              const verifiedOrder = await orderAPI.verifyPayment(paymentDetails);
+              await clearCart();
+              navigate('/order-success', { state: { order: verifiedOrder } });
+            } catch (verifErr) {
+              console.error("Payment verification failed:", verifErr);
+              alert(verifErr.response?.data?.message || 'Payment verification failed. Please contact support.');
+              setIsSubmitting(false);
+            }
+          },
+          prefill: {
+            name: `${formData.firstName} ${formData.lastName}`,
+            email: formData.email,
+            contact: formData.phone
+          },
+          theme: {
+            color: "#0F4C81"
+          },
+          modal: {
+            ondismiss: function () {
+              console.log("Razorpay payment modal closed by the user.");
+              setIsSubmitting(false);
+            }
+          }
         };
-        const newOrder = await orderAPI.createOrder(orderData);
-        await clearCart();
-        navigate('/order-success', { state: { order: newOrder } });
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
       } catch (err) {
-        console.error("Error creating order:", err);
-        alert(err.response?.data?.message || 'Failed to place order. Please try again.');
+        console.error("Razorpay order creation failed:", err);
+        alert(err.response?.data?.message || 'Failed to initiate secure payment. Please try again.');
         setIsSubmitting(false);
       }
     } else {

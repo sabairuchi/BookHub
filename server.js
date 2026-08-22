@@ -6,7 +6,13 @@ import sqlite3 from 'sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import dotenv from 'dotenv';
+import Razorpay from 'razorpay';
+import nodemailer from 'nodemailer';
+import crypto from 'crypto';
 import { books as mockBooks, categories as mockCategories } from './src/data/mockData.js';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,6 +20,12 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'bookhub_super_secret_key_12345';
+
+// Initialize Razorpay
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_your_key_id',
+  key_secret: process.env.RAZORPAY_KEY_SECRET || 'your_razorpay_secret_key'
+});
 
 // Middlewares
 app.use(cors({
@@ -156,6 +168,25 @@ const DB = {
       status TEXT NOT NULL DEFAULT 'Pending',
       shippingAddress TEXT NOT NULL,
       paymentMethod TEXT NOT NULL,
+      paymentStatus TEXT NOT NULL DEFAULT 'Pending',
+      paymentGateway TEXT,
+      razorpayOrderId TEXT,
+      razorpayPaymentId TEXT,
+      subtotal REAL,
+      tax REAL,
+      shipping REAL,
+      discount REAL,
+      email TEXT,
+      phone TEXT,
+      firstName TEXT,
+      lastName TEXT,
+      city TEXT,
+      state TEXT,
+      zipCode TEXT,
+      country TEXT,
+      shippingMethod TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE
     )`);
     await run(`CREATE TABLE IF NOT EXISTS order_items (
@@ -167,6 +198,38 @@ const DB = {
       FOREIGN KEY(orderId) REFERENCES orders(id) ON DELETE CASCADE,
       FOREIGN KEY(bookId) REFERENCES books(id) ON DELETE CASCADE
     )`);
+
+    // Run schema migrations for existing databases that don't have the new columns
+    const columnsToMigration = [
+      { name: 'paymentStatus', type: "TEXT NOT NULL DEFAULT 'Pending'" },
+      { name: 'paymentGateway', type: 'TEXT' },
+      { name: 'razorpayOrderId', type: 'TEXT' },
+      { name: 'razorpayPaymentId', type: 'TEXT' },
+      { name: 'subtotal', type: 'REAL' },
+      { name: 'tax', type: 'REAL' },
+      { name: 'shipping', type: 'REAL' },
+      { name: 'discount', type: 'REAL' },
+      { name: 'email', type: 'TEXT' },
+      { name: 'phone', type: 'TEXT' },
+      { name: 'firstName', type: 'TEXT' },
+      { name: 'lastName', type: 'TEXT' },
+      { name: 'city', type: 'TEXT' },
+      { name: 'state', type: 'TEXT' },
+      { name: 'zipCode', type: 'TEXT' },
+      { name: 'country', type: 'TEXT' },
+      { name: 'shippingMethod', type: 'TEXT' },
+      { name: 'createdAt', type: "DATETIME DEFAULT CURRENT_TIMESTAMP" },
+      { name: 'updatedAt', type: "DATETIME DEFAULT CURRENT_TIMESTAMP" }
+    ];
+
+    for (const col of columnsToMigration) {
+      try {
+        await run(`ALTER TABLE orders ADD COLUMN ${col.name} ${col.type}`);
+        console.log(`Successfully migrated database column: orders.${col.name}`);
+      } catch (err) {
+        // Ignored. The column likely already exists.
+      }
+    }
   },
 
   // Seed Data for SQLite and JSON
@@ -593,21 +656,47 @@ const DB = {
 
   // ORDER OPERATIONS
   async createOrder(userId, orderData) {
-    const { firstName, lastName, address, city, state, zipCode, country, shippingMethod, paymentMethod, total, items } = orderData;
+    const { 
+      firstName, lastName, address, city, state, zipCode, country, 
+      shippingMethod, paymentMethod, total, items, 
+      paymentStatus = 'Pending', paymentGateway = null, 
+      razorpayOrderId = null, razorpayPaymentId = null,
+      subtotal = 0, tax = 0, shipping = 0, discount = 0,
+      email = '', phone = ''
+    } = orderData;
+    
     const orderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
     const shippingAddress = `${firstName} ${lastName}, ${address}, ${city}, ${state} ${zipCode}, ${country}`;
     const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
     if (isSQLite) {
-      await this.sqliteRun("INSERT INTO orders (id, userId, date, total, status, shippingAddress, paymentMethod) VALUES (?, ?, ?, ?, 'Pending', ?, ?)",
-                            [orderId, userId, date, Number(total), shippingAddress, paymentMethod]);
+      await this.sqliteRun(
+        `INSERT INTO orders (
+          id, userId, date, total, status, shippingAddress, paymentMethod,
+          paymentStatus, paymentGateway, razorpayOrderId, razorpayPaymentId,
+          subtotal, tax, shipping, discount, email, phone,
+          firstName, lastName, city, state, zipCode, country, shippingMethod
+        ) VALUES (?, ?, ?, ?, 'Pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          orderId, userId, date, Number(total), shippingAddress, paymentMethod,
+          paymentStatus, paymentGateway, razorpayOrderId, razorpayPaymentId,
+          Number(subtotal), Number(tax), Number(shipping), Number(discount), email, phone,
+          firstName, lastName, city, state, zipCode, country, shippingMethod
+        ]
+      );
+      
       for (const item of items) {
         await this.sqliteRun("INSERT INTO order_items (orderId, bookId, qty, price) VALUES (?, ?, ?, ?)", [orderId, item.id, item.quantity, item.price]);
         // Reduce book stock
         await this.sqliteRun("UPDATE books SET stock = MAX(0, stock - ?) WHERE id = ?", [item.quantity, item.id]);
       }
       await this.clearCart(userId);
-      return { id: orderId, status: 'Pending', date, total, shippingAddress };
+      return { 
+        id: orderId, status: 'Pending', date, total, shippingAddress, 
+        paymentStatus, paymentGateway, razorpayOrderId, razorpayPaymentId,
+        subtotal, tax, shipping, discount, email, phone,
+        firstName, lastName, city, state, zipCode, country, shippingMethod
+      };
     } else {
       const newOrder = {
         id: orderId,
@@ -616,7 +705,26 @@ const DB = {
         total: Number(total),
         status: 'Pending',
         shippingAddress,
-        paymentMethod
+        paymentMethod,
+        paymentStatus,
+        paymentGateway,
+        razorpayOrderId,
+        razorpayPaymentId,
+        subtotal: Number(subtotal),
+        tax: Number(tax),
+        shipping: Number(shipping),
+        discount: Number(discount),
+        email,
+        phone,
+        firstName,
+        lastName,
+        city,
+        state,
+        zipCode,
+        country,
+        shippingMethod,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
       this.jsonData.orders.push(newOrder);
 
@@ -1008,13 +1116,347 @@ app.delete('/api/wishlist/:bookId', authenticateToken, async (req, res) => {
   }
 });
 
-// Orders Endpoints
+// Verification helper for email sending
+const sendConfirmationEmail = async (order) => {
+  try {
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpPort = process.env.SMTP_PORT || 587;
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
+    const emailFrom = process.env.EMAIL_FROM || '"Book Hub" <noreply@bookhub.com>';
+
+    if (!smtpHost || !smtpUser || !smtpPass) {
+      console.log('--- Order Confirmation Email Log (Dry Run) ---');
+      console.log(`To: ${order.email}`);
+      console.log(`Subject: Order Confirmation - Order #${order.id}`);
+      console.log(`Order Total: $${order.total.toFixed(2)}`);
+      console.log('Items:');
+      order.items.forEach(item => {
+        console.log(`- ${item.title} x${item.qty} ($${item.price.toFixed(2)})`);
+      });
+      console.log('----------------------------------------------');
+      return;
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: Number(smtpPort),
+      secure: Number(smtpPort) === 465,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass
+      }
+    });
+
+    const itemsHtml = order.items.map(item => `
+      <tr>
+        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${item.title} by ${item.author}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center;">${item.qty}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">$${item.price.toFixed(2)}</td>
+      </tr>
+    `).join('');
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+        <h2 style="color: #0F4C81; border-bottom: 2px solid #0F4C81; padding-bottom: 10px;">Order Confirmed!</h2>
+        <p>Dear ${order.firstName} ${order.lastName},</p>
+        <p>Thank you for shopping at Book Hub. Your order has been successfully placed and processed.</p>
+        
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <strong>Order ID:</strong> #${order.id}<br/>
+          <strong>Date:</strong> ${order.date}<br/>
+          <strong>Payment Status:</strong> ${order.paymentStatus} (via ${order.paymentGateway || order.paymentMethod})<br/>
+          <strong>Order Status:</strong> Processing
+        </div>
+
+        <h3>Purchased Items</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background-color: #f2f2f2;">
+              <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">Book Title</th>
+              <th style="padding: 8px; text-align: center; border-bottom: 1px solid #ddd; width: 60px;">Qty</th>
+              <th style="padding: 8px; text-align: right; border-bottom: 1px solid #ddd; width: 80px;">Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+
+        <div style="margin-top: 20px; text-align: right;">
+          <p><strong>Subtotal:</strong> $${order.subtotal.toFixed(2)}</p>
+          ${order.discount > 0 ? `<p><strong>Discount (10%):</strong> -$${order.discount.toFixed(2)}</p>` : ''}
+          <p><strong>Shipping:</strong> $${order.shipping.toFixed(2)}</p>
+          <p style="font-size: 18px; color: #0F4C81;"><strong>Total:</strong> $${order.total.toFixed(2)}</p>
+        </div>
+
+        <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+          <h3>Shipping Address</h3>
+          <p>${order.shippingAddress}</p>
+        </div>
+
+        <div style="margin-top: 40px; text-align: center; font-size: 12px; color: #888;">
+          <p>Need help? Contact support at support@bookhub.com</p>
+          <p>&copy; ${new Date().getFullYear()} Book Hub. All rights reserved.</p>
+        </div>
+      </div>
+    `;
+
+    await transporter.sendMail({
+      from: emailFrom,
+      to: order.email,
+      subject: `Order Confirmation - Book Hub #${order.id}`,
+      html: htmlContent
+    });
+    console.log(`Confirmation email sent successfully to ${order.email} for order ${order.id}`);
+  } catch (err) {
+    console.error(`Failed to send order confirmation email for order ${order.id}:`, err.message);
+  }
+};
+
+// Calculation helper for backend pricing verification
+const validateAndCalculateOrder = async (userId, checkoutData) => {
+  const { shippingMethod, couponCode } = checkoutData;
+  
+  // Retrieve user's cart
+  const cartItems = await DB.getCart(userId);
+  if (!cartItems || cartItems.length === 0) {
+    throw new Error('Your cart is empty.');
+  }
+
+  // Validate products exist and check stock
+  let subtotal = 0;
+  const validatedItems = [];
+  
+  for (const item of cartItems) {
+    const book = await DB.getBookById(item.id);
+    if (!book) {
+      throw new Error(`Product "${item.title}" no longer exists in catalog.`);
+    }
+    if (book.stock < item.quantity) {
+      throw new Error(`Insufficient stock for "${book.title}". Available: ${book.stock}, requested: ${item.quantity}.`);
+    }
+    subtotal += book.price * item.quantity;
+    validatedItems.push({
+      id: book.id,
+      title: book.title,
+      author: book.author,
+      price: book.price,
+      quantity: item.quantity
+    });
+  }
+
+  // Shipping cost
+  const shipping = shippingMethod === 'express' ? 199 : 0;
+  
+  // Discount
+  let discount = 0;
+  if (couponCode && couponCode.toLowerCase() === 'bookhub10') {
+    discount = subtotal * 0.1;
+  }
+  
+  // Tax
+  const tax = 0;
+  
+  // Final payable amount
+  const total = subtotal + shipping - discount + tax;
+  
+  if (total <= 0) {
+    throw new Error('Invalid order total.');
+  }
+
+  return {
+    subtotal,
+    shipping,
+    discount,
+    tax,
+    total,
+    items: validatedItems
+  };
+};
+
+// 1. Create Razorpay Order Endpoint
+app.post('/api/checkout/create-razorpay-order', authenticateToken, async (req, res) => {
+  try {
+    const calculation = await validateAndCalculateOrder(req.user.id, req.body);
+    
+    // Amount must be in cents/paise (integer)
+    const amountInPaise = Math.round(calculation.total * 100);
+    const options = {
+      amount: amountInPaise,
+      currency: 'INR', // INR is safest for test accounts
+      receipt: 'rcpt_' + Math.floor(100000 + Math.random() * 900000)
+    };
+
+    let rzpOrder;
+    const isPlaceholder = !process.env.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID === 'rzp_test_your_key_id';
+    
+    if (isPlaceholder) {
+      console.log('Razorpay Key is placeholder or missing. Simulating Razorpay Order creation on backend.');
+      rzpOrder = {
+        id: 'order_mock_' + Math.floor(100000 + Math.random() * 900000),
+        amount: amountInPaise,
+        currency: 'INR'
+      };
+    } else {
+      rzpOrder = await razorpay.orders.create(options);
+    }
+    
+    res.json({
+      key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_your_key_id',
+      order_id: rzpOrder.id,
+      amount: rzpOrder.amount,
+      currency: rzpOrder.currency,
+      subtotal: calculation.subtotal,
+      shipping: calculation.shipping,
+      discount: calculation.discount,
+      tax: calculation.tax,
+      total: calculation.total
+    });
+  } catch (err) {
+    console.error('Error creating Razorpay order:', err);
+    res.status(500).json({ message: err.message || 'Failed to initiate checkout.', error: err.message });
+  }
+});
+
+// 2. Verify Razorpay Payment Endpoint
+app.post('/api/checkout/verify-payment', authenticateToken, async (req, res) => {
+  try {
+    const { 
+      razorpay_order_id, 
+      razorpay_payment_id, 
+      razorpay_signature,
+      checkoutData 
+    } = req.body;
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !checkoutData) {
+      return res.status(400).json({ message: 'Missing payment or checkout verification parameters.' });
+    }
+
+    // Verify signature
+    const key_secret = process.env.RAZORPAY_KEY_SECRET || 'your_razorpay_secret_key';
+    const hmac = crypto.createHmac('sha256', key_secret);
+    hmac.update(razorpay_order_id + '|' + razorpay_payment_id);
+    const generated_signature = hmac.digest('hex');
+
+    const isSignatureValid = (generated_signature === razorpay_signature);
+    const isPlaceholderKey = (process.env.RAZORPAY_KEY_ID === 'rzp_test_your_key_id' || !process.env.RAZORPAY_KEY_ID);
+    
+    if (!isSignatureValid && !isPlaceholderKey) {
+      console.error(`Signature verification failed: Generated: ${generated_signature}, Received: ${razorpay_signature}`);
+      return res.status(400).json({ message: 'Payment verification failed. Invalid signature.' });
+    }
+
+    // Check for duplicate order (Idempotency check)
+    let existingOrder = null;
+    if (isSQLite) {
+      existingOrder = await DB.sqliteGet("SELECT * FROM orders WHERE razorpayOrderId = ?", [razorpay_order_id]);
+    } else {
+      existingOrder = DB.jsonData.orders.find(o => o.razorpayOrderId === razorpay_order_id);
+    }
+    
+    if (existingOrder) {
+      console.log(`Duplicate payment request for Razorpay Order: ${razorpay_order_id}. Returning existing order.`);
+      const items = isSQLite 
+        ? await DB.sqliteAll(`SELECT oi.qty, oi.price, b.title, b.author FROM order_items oi JOIN books b ON oi.bookId = b.id WHERE oi.orderId = ?`, [existingOrder.id])
+        : DB.jsonData.order_items.filter(oi => oi.orderId === existingOrder.id).map(oi => {
+            const book = DB.jsonData.books.find(b => b.id === oi.bookId);
+            return {
+              qty: oi.qty,
+              price: oi.price,
+              title: book ? book.title : 'Unknown Book',
+              author: book ? book.author : 'Unknown Author'
+            };
+          });
+      existingOrder.items = items;
+      return res.json(existingOrder);
+    }
+
+    // Authoritative backend price check & stock check
+    const calculation = await validateAndCalculateOrder(req.user.id, checkoutData);
+
+    const orderData = {
+      firstName: checkoutData.firstName,
+      lastName: checkoutData.lastName,
+      address: checkoutData.address,
+      city: checkoutData.city,
+      state: checkoutData.state,
+      zipCode: checkoutData.zipCode,
+      country: checkoutData.country,
+      shippingMethod: checkoutData.shippingMethod,
+      paymentMethod: checkoutData.paymentMethod,
+      paymentStatus: 'Paid',
+      paymentGateway: 'Razorpay',
+      razorpayOrderId: razorpay_order_id,
+      razorpayPaymentId: razorpay_payment_id,
+      subtotal: calculation.subtotal,
+      shipping: calculation.shipping,
+      discount: calculation.discount,
+      total: calculation.total,
+      email: checkoutData.email || req.user.email,
+      phone: checkoutData.phone,
+      items: calculation.items
+    };
+
+    const confirmedOrder = await DB.createOrder(req.user.id, orderData);
+    
+    // Set mapped items for the response
+    confirmedOrder.items = calculation.items.map(item => ({
+      qty: item.quantity,
+      price: item.price,
+      title: item.title,
+      author: item.author
+    }));
+
+    // Trigger email confirmation asynchronously
+    sendConfirmationEmail(confirmedOrder).catch(err => {
+      console.error('Asynchronous order confirmation email failed:', err.message);
+    });
+
+    res.status(201).json(confirmedOrder);
+  } catch (err) {
+    console.error('Error during payment verification:', err);
+    res.status(500).json({ message: err.message || 'Payment verification failed.', error: err.message });
+  }
+});
+
+// 3. Regular Orders Endpoint (for Cash on Delivery / standard flow)
 app.post('/api/orders', authenticateToken, async (req, res) => {
   try {
-    const order = await DB.createOrder(req.user.id, req.body);
+    const checkoutData = req.body;
+    
+    // Authoritative backend validation
+    const calculation = await validateAndCalculateOrder(req.user.id, checkoutData);
+
+    const orderData = {
+      ...checkoutData,
+      subtotal: calculation.subtotal,
+      shipping: calculation.shipping,
+      discount: calculation.discount,
+      total: calculation.total,
+      paymentStatus: checkoutData.paymentMethod === 'cod' ? 'Pending' : 'Paid',
+      email: checkoutData.email || req.user.email,
+      items: calculation.items
+    };
+
+    const order = await DB.createOrder(req.user.id, orderData);
+    
+    // Set mapped items for response / email
+    order.items = calculation.items.map(item => ({
+      qty: item.quantity,
+      price: item.price,
+      title: item.title,
+      author: item.author
+    }));
+
+    // Trigger email confirmation asynchronously
+    sendConfirmationEmail(order).catch(err => {
+      console.error('Asynchronous order confirmation email failed:', err.message);
+    });
+
     res.status(201).json(order);
   } catch (err) {
-    res.status(500).json({ message: 'Server error placing order.', error: err.message });
+    res.status(500).json({ message: err.message || 'Server error placing order.', error: err.message });
   }
 });
 

@@ -175,6 +175,24 @@ const OrderManagement = () => {
                   <strong>Shipping Address:</strong>
                   <p>{viewingOrder.address || viewingOrder.shippingAddress}</p>
                 </div>
+                <div className="detail-group">
+                  <strong>Payment Status:</strong>
+                  <p>
+                    <span className={`admin-badge ${viewingOrder.paymentStatus === 'Paid' ? 'badge-delivered' : 'badge-pending'}`} style={{ display: 'inline-block', margin: 0 }}>
+                      {viewingOrder.paymentStatus || 'Pending'}
+                    </span>
+                  </p>
+                </div>
+                <div className="detail-group">
+                  <strong>Payment Method:</strong>
+                  <p>{viewingOrder.paymentMethod || 'Not Specified'}</p>
+                </div>
+                {viewingOrder.razorpayPaymentId && (
+                  <div className="detail-group">
+                    <strong>Razorpay Payment ID:</strong>
+                    <p style={{ fontFamily: 'monospace', fontSize: '0.9em' }}>{viewingOrder.razorpayPaymentId}</p>
+                  </div>
+                )}
                 
                 {viewingOrder.orderItems && (
                   <div className="detail-group full-width" style={{ marginTop: '1rem', borderTop: '1px solid #eee', paddingTop: '1rem' }}>

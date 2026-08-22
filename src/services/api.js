@@ -68,6 +68,14 @@ export const orderAPI = {
     const { data } = await api.post('/orders', orderData);
     return data;
   },
+  createRazorpayOrder: async (checkoutData) => {
+    const { data } = await api.post('/checkout/create-razorpay-order', checkoutData);
+    return data;
+  },
+  verifyPayment: async (paymentDetails) => {
+    const { data } = await api.post('/checkout/verify-payment', paymentDetails);
+    return data;
+  },
   getOrderById: async (id) => {
     const { data } = await api.get(`/orders/${id}`);
     return data;

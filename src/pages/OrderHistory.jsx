@@ -65,8 +65,11 @@ const OrderHistory = () => {
                 <span className="order-id">Order #{order.id}</span>
                 <span className="order-date">Placed on {order.date}</span>
               </div>
-              <div className="order-status-wrapper">
+              <div className="order-status-wrapper" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                 <span className={`status-badge ${order.status.toLowerCase()}`}>{order.status}</span>
+                <span className="payment-status" style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+                  Payment: <strong style={{ color: order.paymentStatus === 'Paid' ? '#2A9D8F' : '#E76F51' }}>{order.paymentStatus || 'Pending'}</strong>
+                </span>
               </div>
             </div>
             

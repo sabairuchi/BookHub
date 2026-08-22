@@ -90,12 +90,17 @@ const TrackOrder = () => {
 
       {orderFound && trackedOrder && (
         <div className="tracking-results">
-          <div className="order-summary-header">
-            <h3>Order #{trackedOrder.id.toUpperCase()}</h3>
-            <span className={`status-badge ${getStatusClass(trackedOrder.status)}`}>
-              {trackedOrder.status === 'Pending' ? 'Received' : trackedOrder.status}
-            </span>
-          </div>
+            <div className="order-summary-header">
+              <h3>Order #{trackedOrder.id.toUpperCase()}</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                <span className={`status-badge ${getStatusClass(trackedOrder.status)}`}>
+                  {trackedOrder.status === 'Pending' ? 'Received' : trackedOrder.status}
+                </span>
+                <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                  Payment: <strong style={{ color: trackedOrder.paymentStatus === 'Paid' ? '#2A9D8F' : '#E76F51' }}>{trackedOrder.paymentStatus || 'Pending'}</strong>
+                </span>
+              </div>
+            </div>
           
           <div className="estimated-delivery">
             <p>Estimated Delivery</p>
