@@ -97,15 +97,8 @@ const Checkout = () => {
       newErrors.email = 'Invalid email address';
     }
 
-    if (formData.paymentMethod === 'card') {
-      if (!formData.cardNumber.trim()) newErrors.cardNumber = 'Card number is required';
-      if (!formData.cardName.trim()) newErrors.cardName = 'Name on card is required';
-      if (!formData.cardExpiry.trim()) newErrors.cardExpiry = 'Expiry date is required';
-      if (!formData.cardCvv.trim()) newErrors.cardCvv = 'CVV is required';
-    } else if (formData.paymentMethod === 'upi') {
-      if (!formData.upiId.trim()) newErrors.upiId = 'UPI ID is required';
-    }
-
+    // Since card and UPI inputs are securely handled inside the Razorpay Checkout overlay,
+    // we do not require local card/UPI field validations.
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
