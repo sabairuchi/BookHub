@@ -85,7 +85,7 @@ export const books = [
     price: 24.99,
     description: "The magical beginning of Harry Potter's unforgettable journey.",
     rating: 4.9,
-    image: "https://images.unsplash.com/photo-1626244670267-33a7adfc783d?auto=format&fit=crop&q=80&w=600",
+    image: "/images/harry_potter_cover.jpg",
     isBestSeller: true,
     isNewArrival: false,
     isPublishedByUs: false
