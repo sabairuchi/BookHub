@@ -1,0 +1,125 @@
+.footer {
+  background-color: var(--primary-color);
+  color: var(--white);
+  padding-top: 4rem;
+}
+
+.footer-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.footer-col h3 {
+  color: var(--white);
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+}
+
+.footer-logo .logo-img {
+  height: 60px;
+  object-fit: contain;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+}
+
+.footer-logo p {
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.social-icons {
+  display: flex;
+  gap: 1rem;
+}
+
+.social-icons a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: var(--transition);
+}
+
+.social-icons a:hover {
+  background-color: var(--accent-color);
+  color: var(--white);
+}
+
+.footer-col ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.footer-col ul a {
+  color: rgba(255, 255, 255, 0.8);
+  transition: var(--transition);
+}
+
+.footer-col ul a:hover {
+  color: var(--accent-color);
+  padding-left: 5px;
+}
+
+.newsletter-col p {
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.newsletter-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.newsletter-form input {
+  padding: 0.8rem;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+}
+
+.newsletter-form button {
+  background-color: var(--accent-color);
+  color: var(--white);
+  padding: 0.8rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.newsletter-form button:hover {
+  background-color: #e09355;
+}
+
+.footer-bottom {
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 1.5rem 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.footer-btn-link {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: left;
+  transition: var(--transition);
+}
+
+.footer-btn-link:hover {
+  color: var(--accent-color);
+  padding-left: 5px;
+}

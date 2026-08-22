@@ -1,0 +1,70 @@
+.customer-management-page {
+  width: 100%;
+}
+
+.customer-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.customer-avatar {
+  width: 36px;
+  height: 36px;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.contact-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-light);
+  font-size: 0.9rem;
+}
+
+.disabled-row {
+  opacity: 0.7;
+  background-color: #f8fafc;
+}
+
+.status-btn {
+  width: auto;
+  height: auto;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+.status-btn.suspend {
+  color: #b91c1c;
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.status-btn.suspend:hover {
+  background-color: #b91c1c;
+  color: white;
+}
+
+.status-btn.activate {
+  color: #059669;
+  background-color: #d1fae5;
+  border-color: #6ee7b7;
+}
+
+.status-btn.activate:hover {
+  background-color: #059669;
+  color: white;
+}

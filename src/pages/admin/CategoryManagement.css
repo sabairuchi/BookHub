@@ -1,0 +1,44 @@
+.category-management-page {
+  width: 100%;
+}
+
+.category-table th {
+  white-space: nowrap;
+}
+
+.table-img-landscape {
+  width: 80px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid #e2e8f0;
+}
+
+.placeholder-img {
+  width: 80px;
+  height: 50px;
+  background-color: #f1f5f9;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  border: 1px dashed #cbd5e1;
+}
+
+.category-table strong {
+  color: var(--primary-color);
+  font-size: 1rem;
+}
+
+.count-badge {
+  display: inline-block;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
