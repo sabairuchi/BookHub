@@ -2,7 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import sqlite3 from 'sqlite3';
+import pg from 'pg';
+const { Pool } = pg;
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -35,213 +36,110 @@ app.use(cors({
 app.use(express.json());
 
 // Database Setup
-let db;
-let isSQLite = false;
-const sqliteDbPath = path.join(__dirname, 'database.sqlite');
-const jsonDbPath = path.join(__dirname, 'database.json');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
 // Abstract DB Helper
 const DB = {
   // Initialize Database
-  init() {
-    return new Promise((resolve) => {
-      // First try SQLite
-      try {
-        db = new sqlite3.Database(sqliteDbPath, async (err) => {
-          if (err) {
-            console.error('Failed to connect to SQLite, falling back to JSON DB:', err.message);
-            this.initJson();
-            resolve();
-          } else {
-            console.log('Connected to SQLite database.');
-            isSQLite = true;
-            try {
-              await this.initSqliteTables();
-              await this.seedData();
-              resolve();
-            } catch (initErr) {
-              console.error('SQLite initialization/seeding failed, falling back to JSON DB:', initErr.message);
-              isSQLite = false;
-              try { db.close(); } catch (e) {}
-              this.initJson();
-              resolve();
-            }
-          }
-        });
-      } catch (e) {
-        console.error('SQLite module failed to initialize, falling back to JSON DB:', e.message);
-        this.initJson();
-        resolve();
-      }
-    });
-  },
-
-  // Initialize JSON Database fallback
-  initJson() {
-    console.log('Using JSON file database at:', jsonDbPath);
-    if (fs.existsSync(jsonDbPath)) {
-      try {
-        this.jsonData = JSON.parse(fs.readFileSync(jsonDbPath, 'utf8'));
-      } catch (e) {
-        console.error('Error reading JSON DB, initializing empty:', e.message);
-        this.resetJsonData();
-      }
-    } else {
-      this.resetJsonData();
-    }
-    this.seedJsonData();
-  },
-
-  resetJsonData() {
-    this.jsonData = {
-      users: [],
-      books: [],
-      categories: [],
-      cart_items: [],
-      wishlist_items: [],
-      orders: [],
-      order_items: []
-    };
-    this.saveJson();
-  },
-
-  saveJson() {
+  async init() {
     try {
-      fs.writeFileSync(jsonDbPath, JSON.stringify(this.jsonData, null, 2), 'utf8');
+      await pool.query('SELECT NOW()');
+      console.log('Connected to PostgreSQL database.');
+      await this.initPostgresTables();
+      await this.seedData();
     } catch (e) {
-      console.error('Failed to save JSON DB:', e.message);
+      console.error('Failed to connect to PostgreSQL:', e.message);
+      // Wait before crashing, or just log.
     }
   },
 
-  // Create SQLite Tables
-  async initSqliteTables() {
-    const run = (query) => new Promise((res, rej) => db.run(query, (err) => err ? rej(err) : res()));
-    await run(`CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
+  async initPostgresTables() {
+    await pool.query(`CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      password VARCHAR(255) NOT NULL,
       isAdmin INTEGER DEFAULT 0,
-      status TEXT DEFAULT 'Active',
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+      status VARCHAR(50) DEFAULT 'Active',
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);
-    await run(`CREATE TABLE IF NOT EXISTS books (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT NOT NULL,
-      author TEXT NOT NULL,
-      category TEXT NOT NULL,
-      price REAL NOT NULL,
+    await pool.query(`CREATE TABLE IF NOT EXISTS books (
+      id SERIAL PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      author VARCHAR(255) NOT NULL,
+      category VARCHAR(255) NOT NULL,
+      price NUMERIC NOT NULL,
       description TEXT,
-      rating REAL DEFAULT 5.0,
+      rating NUMERIC DEFAULT 5.0,
       image TEXT,
       isBestSeller INTEGER DEFAULT 0,
       isNewArrival INTEGER DEFAULT 0,
       isPublishedByUs INTEGER DEFAULT 0,
       stock INTEGER DEFAULT 10
     )`);
-    await run(`CREATE TABLE IF NOT EXISTS categories (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT UNIQUE NOT NULL,
+    await pool.query(`CREATE TABLE IF NOT EXISTS categories (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) UNIQUE NOT NULL,
       count INTEGER DEFAULT 0,
       image TEXT
     )`);
-    await run(`CREATE TABLE IF NOT EXISTS cart_items (
-      userId INTEGER NOT NULL,
-      bookId INTEGER NOT NULL,
+    await pool.query(`CREATE TABLE IF NOT EXISTS cart_items (
+      userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      bookId INTEGER NOT NULL REFERENCES books(id) ON DELETE CASCADE,
       quantity INTEGER NOT NULL DEFAULT 1,
-      PRIMARY KEY(userId, bookId),
-      FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE,
-      FOREIGN KEY(bookId) REFERENCES books(id) ON DELETE CASCADE
+      PRIMARY KEY(userId, bookId)
     )`);
-    await run(`CREATE TABLE IF NOT EXISTS wishlist_items (
-      userId INTEGER NOT NULL,
-      bookId INTEGER NOT NULL,
-      PRIMARY KEY(userId, bookId),
-      FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE,
-      FOREIGN KEY(bookId) REFERENCES books(id) ON DELETE CASCADE
+    await pool.query(`CREATE TABLE IF NOT EXISTS wishlist_items (
+      userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      bookId INTEGER NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+      PRIMARY KEY(userId, bookId)
     )`);
-    await run(`CREATE TABLE IF NOT EXISTS orders (
-      id TEXT PRIMARY KEY,
-      userId INTEGER NOT NULL,
-      date TEXT NOT NULL,
-      total REAL NOT NULL,
-      status TEXT NOT NULL DEFAULT 'Pending',
+    await pool.query(`CREATE TABLE IF NOT EXISTS orders (
+      id VARCHAR(50) PRIMARY KEY,
+      userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      date VARCHAR(50) NOT NULL,
+      total NUMERIC NOT NULL,
+      status VARCHAR(50) NOT NULL DEFAULT 'Pending',
       shippingAddress TEXT NOT NULL,
-      paymentMethod TEXT NOT NULL,
-      paymentStatus TEXT NOT NULL DEFAULT 'Pending',
-      paymentGateway TEXT,
-      razorpayOrderId TEXT,
-      razorpayPaymentId TEXT,
-      subtotal REAL,
-      tax REAL,
-      shipping REAL,
-      discount REAL,
-      email TEXT,
-      phone TEXT,
-      firstName TEXT,
-      lastName TEXT,
-      city TEXT,
-      state TEXT,
-      zipCode TEXT,
-      country TEXT,
-      shippingMethod TEXT,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE
+      paymentMethod VARCHAR(50) NOT NULL,
+      paymentStatus VARCHAR(50) NOT NULL DEFAULT 'Pending',
+      paymentGateway VARCHAR(50),
+      razorpayOrderId VARCHAR(100),
+      razorpayPaymentId VARCHAR(100),
+      subtotal NUMERIC,
+      tax NUMERIC,
+      shipping NUMERIC,
+      discount NUMERIC,
+      email VARCHAR(255),
+      phone VARCHAR(50),
+      firstName VARCHAR(100),
+      lastName VARCHAR(100),
+      city VARCHAR(100),
+      state VARCHAR(100),
+      zipCode VARCHAR(50),
+      country VARCHAR(100),
+      shippingMethod VARCHAR(50),
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);
-    await run(`CREATE TABLE IF NOT EXISTS order_items (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      orderId TEXT NOT NULL,
-      bookId INTEGER NOT NULL,
+    await pool.query(`CREATE TABLE IF NOT EXISTS order_items (
+      id SERIAL PRIMARY KEY,
+      orderId VARCHAR(50) NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+      bookId INTEGER NOT NULL REFERENCES books(id) ON DELETE CASCADE,
       qty INTEGER NOT NULL,
-      price REAL NOT NULL,
-      FOREIGN KEY(orderId) REFERENCES orders(id) ON DELETE CASCADE,
-      FOREIGN KEY(bookId) REFERENCES books(id) ON DELETE CASCADE
+      price NUMERIC NOT NULL
     )`);
-
-    // Run schema migrations for existing databases that don't have the new columns
-    const columnsToMigration = [
-      { name: 'paymentStatus', type: "TEXT NOT NULL DEFAULT 'Pending'" },
-      { name: 'paymentGateway', type: 'TEXT' },
-      { name: 'razorpayOrderId', type: 'TEXT' },
-      { name: 'razorpayPaymentId', type: 'TEXT' },
-      { name: 'subtotal', type: 'REAL' },
-      { name: 'tax', type: 'REAL' },
-      { name: 'shipping', type: 'REAL' },
-      { name: 'discount', type: 'REAL' },
-      { name: 'email', type: 'TEXT' },
-      { name: 'phone', type: 'TEXT' },
-      { name: 'firstName', type: 'TEXT' },
-      { name: 'lastName', type: 'TEXT' },
-      { name: 'city', type: 'TEXT' },
-      { name: 'state', type: 'TEXT' },
-      { name: 'zipCode', type: 'TEXT' },
-      { name: 'country', type: 'TEXT' },
-      { name: 'shippingMethod', type: 'TEXT' },
-      { name: 'createdAt', type: "DATETIME DEFAULT CURRENT_TIMESTAMP" },
-      { name: 'updatedAt', type: "DATETIME DEFAULT CURRENT_TIMESTAMP" }
-    ];
-
-    for (const col of columnsToMigration) {
-      try {
-        await run(`ALTER TABLE orders ADD COLUMN ${col.name} ${col.type}`);
-        console.log(`Successfully migrated database column: orders.${col.name}`);
-      } catch (err) {
-        // Ignored. The column likely already exists.
-      }
-    }
   },
 
-  // Seed Data for SQLite and JSON
   async seedData() {
-    const get = (query) => new Promise((res, rej) => db.get(query, (err, row) => err ? rej(err) : res(row)));
-    const run = (query, params) => new Promise((res, rej) => db.run(query, params, (err) => err ? rej(err) : res()));
-
     // Seed Admin
-    const adminCheck = await get("SELECT * FROM users WHERE email = 'admin@bookhub.com'");
-    if (!adminCheck) {
+    const adminCheck = await pool.query("SELECT * FROM users WHERE email = $1", ['admin@bookhub.com']);
+    if (adminCheck.rows.length === 0) {
       const hashedPw = await bcrypt.hash('admin123', 10);
-      await run("INSERT INTO users (name, email, password, isAdmin) VALUES (?, ?, ?, ?)", ['Admin User', 'admin@bookhub.com', hashedPw, 1]);
+      await pool.query("INSERT INTO users (name, email, password, isAdmin) VALUES ($1, $2, $3, $4)", ['Admin User', 'admin@bookhub.com', hashedPw, 1]);
     }
 
     // Seed Mock Customers
@@ -253,343 +151,154 @@ const DB = {
       { name: 'David Brown', email: 'david@example.com', password: 'password123' },
     ];
     for (const cust of mockCustomers) {
-      const custCheck = await get(`SELECT * FROM users WHERE email = ?`, [cust.email]);
-      if (!custCheck) {
+      const custCheck = await pool.query("SELECT * FROM users WHERE email = $1", [cust.email]);
+      if (custCheck.rows.length === 0) {
         const hashedPw = await bcrypt.hash(cust.password, 10);
-        await run("INSERT INTO users (name, email, password, isAdmin, status) VALUES (?, ?, ?, ?, ?)", [cust.name, cust.email, hashedPw, 0, cust.status || 'Active']);
+        await pool.query("INSERT INTO users (name, email, password, isAdmin, status) VALUES ($1, $2, $3, $4, $5)", [cust.name, cust.email, hashedPw, 0, cust.status || 'Active']);
       }
     }
 
     // Seed Categories
-    const catCount = await get("SELECT COUNT(*) as count FROM categories");
-    if (catCount.count === 0) {
+    const catCount = await pool.query("SELECT COUNT(*) as count FROM categories");
+    if (parseInt(catCount.rows[0].count) === 0) {
       for (const cat of mockCategories) {
-        await run("INSERT INTO categories (id, name, count, image) VALUES (?, ?, ?, ?)", [cat.id, cat.name, cat.count, cat.image]);
+        await pool.query("INSERT INTO categories (name, count, image) VALUES ($1, $2, $3)", [cat.name, cat.count, cat.image]);
       }
     }
 
     // Seed Books
-    const bookCount = await get("SELECT COUNT(*) as count FROM books");
-    if (bookCount.count === 0) {
+    const bookCount = await pool.query("SELECT COUNT(*) as count FROM books");
+    if (parseInt(bookCount.rows[0].count) === 0) {
       for (const book of mockBooks) {
-        await run(`INSERT INTO books (id, title, author, category, price, description, rating, image, isBestSeller, isNewArrival, isPublishedByUs, stock) 
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-                   [book.id, book.title, book.author, book.category, book.price, book.description, book.rating, book.image, book.isBestSeller ? 1 : 0, book.isNewArrival ? 1 : 0, book.isPublishedByUs ? 1 : 0, 10]);
+        await pool.query(`INSERT INTO books (title, author, category, price, description, rating, image, isBestSeller, isNewArrival, isPublishedByUs, stock) 
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`, 
+                   [book.title, book.author, book.category, book.price, book.description, book.rating, book.image, book.isBestSeller ? 1 : 0, book.isNewArrival ? 1 : 0, book.isPublishedByUs ? 1 : 0, 10]);
       }
     }
-  },
-
-  async seedJsonData() {
-    // Seed Admin
-    const adminCheck = this.jsonData.users.find(u => u.email === 'admin@bookhub.com');
-    if (!adminCheck) {
-      const hashedPw = await bcrypt.hash('admin123', 10);
-      this.jsonData.users.push({
-        id: 1,
-        name: 'Admin User',
-        email: 'admin@bookhub.com',
-        password: hashedPw,
-        isAdmin: 1,
-        status: 'Active',
-        createdAt: new Date().toISOString()
-      });
-    }
-
-    // Seed Mock Customers
-    const mockCustomers = [
-      { id: 2, name: 'John Doe', email: 'john@example.com', password: 'password123', status: 'Active' },
-      { id: 3, name: 'Jane Smith', email: 'jane@example.com', password: 'password123', status: 'Active' },
-      { id: 4, name: 'Mike Johnson', email: 'mike@example.com', password: 'password123', status: 'Active' },
-      { id: 5, name: 'Sarah Williams', email: 'sarah@example.com', password: 'password123', status: 'Disabled' },
-      { id: 6, name: 'David Brown', email: 'david@example.com', password: 'password123', status: 'Active' },
-    ];
-    for (const cust of mockCustomers) {
-      const custCheck = this.jsonData.users.find(u => u.email === cust.email);
-      if (!custCheck) {
-        const hashedPw = await bcrypt.hash(cust.password, 10);
-        this.jsonData.users.push({
-          id: cust.id,
-          name: cust.name,
-          email: cust.email,
-          password: hashedPw,
-          isAdmin: 0,
-          status: cust.status,
-          createdAt: new Date().toISOString()
-        });
-      }
-    }
-
-    // Seed Categories
-    if (this.jsonData.categories.length === 0) {
-      this.jsonData.categories = mockCategories.map(cat => ({ ...cat }));
-    }
-
-    // Seed Books
-    if (this.jsonData.books.length === 0) {
-      this.jsonData.books = mockBooks.map(book => ({
-        ...book,
-        isBestSeller: book.isBestSeller ? 1 : 0,
-        isNewArrival: book.isNewArrival ? 1 : 0,
-        isPublishedByUs: book.isPublishedByUs ? 1 : 0,
-        stock: 10
-      }));
-    }
-    this.saveJson();
-  },
-
-  // Helper Methods for SQLite Operations
-  sqliteGet(query, params = []) {
-    return new Promise((res, rej) => db.get(query, params, (err, row) => err ? rej(err) : res(row)));
-  },
-  sqliteAll(query, params = []) {
-    return new Promise((res, rej) => db.all(query, params, (err, rows) => err ? rej(err) : res(rows)));
-  },
-  sqliteRun(query, params = []) {
-    return new Promise((res, rej) => db.run(query, params, function(err) { err ? rej(err) : res(this); }));
   },
 
   // USER OPERATIONS
   async getUserByEmail(email) {
-    if (isSQLite) {
-      return await this.sqliteGet("SELECT * FROM users WHERE email = ?", [email]);
-    } else {
-      return this.jsonData.users.find(u => u.email === email);
-    }
+    const res = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+    return res.rows[0];
   },
 
   async getUserById(id) {
-    if (isSQLite) {
-      return await this.sqliteGet("SELECT * FROM users WHERE id = ?", [id]);
-    } else {
-      return this.jsonData.users.find(u => u.id === Number(id));
-    }
+    const res = await pool.query("SELECT * FROM users WHERE id = $1", [id]);
+    return res.rows[0];
   },
 
   async createUser(name, email, password) {
     const hashedPw = await bcrypt.hash(password, 10);
-    if (isSQLite) {
-      const result = await this.sqliteRun("INSERT INTO users (name, email, password, isAdmin, status) VALUES (?, ?, ?, 0, 'Active')", [name, email, hashedPw]);
-      return { id: result.lastID, name, email, isAdmin: 0, status: 'Active' };
-    } else {
-      const nextId = this.jsonData.users.length > 0 ? Math.max(...this.jsonData.users.map(u => u.id)) + 1 : 1;
-      const newUser = { id: nextId, name, email, password: hashedPw, isAdmin: 0, status: 'Active', createdAt: new Date().toISOString() };
-      this.jsonData.users.push(newUser);
-      this.saveJson();
-      const { password: _, ...userNoPw } = newUser;
-      return userNoPw;
-    }
+    const result = await pool.query("INSERT INTO users (name, email, password, isAdmin, status) VALUES ($1, $2, $3, 0, 'Active') RETURNING id", [name, email, hashedPw]);
+    return { id: result.rows[0].id, name, email, isAdmin: 0, status: 'Active' };
   },
 
   async getAllUsers() {
-    if (isSQLite) {
-      return await this.sqliteAll("SELECT id, name, email, isAdmin, status, createdAt FROM users WHERE isAdmin = 0");
-    } else {
-      return this.jsonData.users.filter(u => u.isAdmin === 0).map(({ password, ...u }) => u);
-    }
+    const res = await pool.query("SELECT id, name, email, isAdmin, status, createdAt FROM users WHERE isAdmin = 0");
+    return res.rows;
   },
 
   async updateUserStatus(id, status) {
-    if (isSQLite) {
-      await this.sqliteRun("UPDATE users SET status = ? WHERE id = ?", [status, id]);
-    } else {
-      const user = this.jsonData.users.find(u => u.id === Number(id));
-      if (user) {
-        user.status = status;
-        this.saveJson();
-      }
-    }
+    await pool.query("UPDATE users SET status = $1 WHERE id = $2", [status, id]);
   },
 
   // BOOK OPERATIONS
   async getBooks(keyword = '') {
-    if (isSQLite) {
-      if (keyword) {
-        return await this.sqliteAll("SELECT * FROM books WHERE title LIKE ? OR author LIKE ?", [`%${keyword}%`, `%${keyword}%`]);
-      }
-      return await this.sqliteAll("SELECT * FROM books");
-    } else {
-      let result = this.jsonData.books;
-      if (keyword) {
-        const q = keyword.toLowerCase();
-        result = result.filter(b => b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q));
-      }
-      return result;
+    if (keyword) {
+      const res = await pool.query("SELECT * FROM books WHERE title ILIKE $1 OR author ILIKE $1", [`%${keyword}%`]);
+      return res.rows.map(b => ({...b, price: Number(b.price), rating: Number(b.rating)}));
     }
+    const res = await pool.query("SELECT * FROM books");
+    return res.rows.map(b => ({...b, price: Number(b.price), rating: Number(b.rating)}));
   },
 
   async getBookById(id) {
-    if (isSQLite) {
-      return await this.sqliteGet("SELECT * FROM books WHERE id = ?", [id]);
-    } else {
-      return this.jsonData.books.find(b => b.id === Number(id));
+    const res = await pool.query("SELECT * FROM books WHERE id = $1", [id]);
+    if (res.rows[0]) {
+      res.rows[0].price = Number(res.rows[0].price);
+      res.rows[0].rating = Number(res.rows[0].rating);
     }
+    return res.rows[0];
   },
 
   async createBook(bookData) {
     const { title, author, category, price, description, rating, image, isBestSeller, isNewArrival, isPublishedByUs, stock } = bookData;
-    if (isSQLite) {
-      const result = await this.sqliteRun(`INSERT INTO books (title, author, category, price, description, rating, image, isBestSeller, isNewArrival, isPublishedByUs, stock)
-                                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                                           [title, author, category, Number(price), description, Number(rating || 5), image, isBestSeller ? 1 : 0, isNewArrival ? 1 : 0, isPublishedByUs ? 1 : 0, Number(stock || 10)]);
-      return { id: result.lastID, ...bookData };
-    } else {
-      const nextId = this.jsonData.books.length > 0 ? Math.max(...this.jsonData.books.map(b => b.id)) + 1 : 1;
-      const newBook = { id: nextId, ...bookData, price: Number(price), rating: Number(rating || 5), stock: Number(stock || 10), isBestSeller: isBestSeller ? 1 : 0, isNewArrival: isNewArrival ? 1 : 0, isPublishedByUs: isPublishedByUs ? 1 : 0 };
-      this.jsonData.books.push(newBook);
-      this.saveJson();
-      return newBook;
-    }
+    const result = await pool.query(`INSERT INTO books (title, author, category, price, description, rating, image, isBestSeller, isNewArrival, isPublishedByUs, stock)
+                                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
+                                         [title, author, category, Number(price), description, Number(rating || 5), image, isBestSeller ? 1 : 0, isNewArrival ? 1 : 0, isPublishedByUs ? 1 : 0, Number(stock || 10)]);
+    return { id: result.rows[0].id, ...bookData };
   },
 
   async updateBook(id, bookData) {
     const { title, author, category, price, description, image, isBestSeller, isNewArrival, isPublishedByUs, stock } = bookData;
-    if (isSQLite) {
-      await this.sqliteRun(`UPDATE books SET title = ?, author = ?, category = ?, price = ?, description = ?, image = ?, isBestSeller = ?, isNewArrival = ?, isPublishedByUs = ?, stock = ?
-                            WHERE id = ?`,
-                            [title, author, category, Number(price), description, image, isBestSeller ? 1 : 0, isNewArrival ? 1 : 0, isPublishedByUs ? 1 : 0, Number(stock), id]);
-      return { id, ...bookData };
-    } else {
-      const idx = this.jsonData.books.findIndex(b => b.id === Number(id));
-      if (idx !== -1) {
-        this.jsonData.books[idx] = { ...this.jsonData.books[idx], ...bookData, price: Number(price), stock: Number(stock), isBestSeller: isBestSeller ? 1 : 0, isNewArrival: isNewArrival ? 1 : 0, isPublishedByUs: isPublishedByUs ? 1 : 0 };
-        this.saveJson();
-        return this.jsonData.books[idx];
-      }
-      return null;
-    }
+    await pool.query(`UPDATE books SET title = $1, author = $2, category = $3, price = $4, description = $5, image = $6, isBestSeller = $7, isNewArrival = $8, isPublishedByUs = $9, stock = $10
+                          WHERE id = $11`,
+                          [title, author, category, Number(price), description, image, isBestSeller ? 1 : 0, isNewArrival ? 1 : 0, isPublishedByUs ? 1 : 0, Number(stock), id]);
+    return { id, ...bookData };
   },
 
   async deleteBook(id) {
-    if (isSQLite) {
-      await this.sqliteRun("DELETE FROM books WHERE id = ?", [id]);
-    } else {
-      this.jsonData.books = this.jsonData.books.filter(b => b.id !== Number(id));
-      this.saveJson();
-    }
+    await pool.query("DELETE FROM books WHERE id = $1", [id]);
   },
 
   // CATEGORY OPERATIONS
   async getCategories() {
-    if (isSQLite) {
-      return await this.sqliteAll("SELECT * FROM categories");
-    } else {
-      return this.jsonData.categories;
-    }
+    const res = await pool.query("SELECT * FROM categories");
+    return res.rows;
   },
 
   async createCategory(catData) {
     const { name, count, image } = catData;
-    if (isSQLite) {
-      const result = await this.sqliteRun("INSERT INTO categories (name, count, image) VALUES (?, ?, ?)", [name, Number(count || 0), image]);
-      return { id: result.lastID, ...catData };
-    } else {
-      const nextId = this.jsonData.categories.length > 0 ? Math.max(...this.jsonData.categories.map(c => c.id)) + 1 : 1;
-      const newCategory = { id: nextId, name, count: Number(count || 0), image };
-      this.jsonData.categories.push(newCategory);
-      this.saveJson();
-      return newCategory;
-    }
+    const result = await pool.query("INSERT INTO categories (name, count, image) VALUES ($1, $2, $3) RETURNING id", [name, Number(count || 0), image]);
+    return { id: result.rows[0].id, ...catData };
   },
 
   async updateCategory(id, catData) {
     const { name, count, image } = catData;
-    if (isSQLite) {
-      await this.sqliteRun("UPDATE categories SET name = ?, count = ?, image = ? WHERE id = ?", [name, Number(count), image, id]);
-      return { id, ...catData };
-    } else {
-      const idx = this.jsonData.categories.findIndex(c => c.id === Number(id));
-      if (idx !== -1) {
-        this.jsonData.categories[idx] = { ...this.jsonData.categories[idx], name, count: Number(count), image };
-        this.saveJson();
-        return this.jsonData.categories[idx];
-      }
-      return null;
-    }
+    await pool.query("UPDATE categories SET name = $1, count = $2, image = $3 WHERE id = $4", [name, Number(count), image, id]);
+    return { id, ...catData };
   },
 
   async deleteCategory(id) {
-    if (isSQLite) {
-      await this.sqliteRun("DELETE FROM categories WHERE id = ?", [id]);
-    } else {
-      this.jsonData.categories = this.jsonData.categories.filter(c => c.id !== Number(id));
-      this.saveJson();
-    }
+    await pool.query("DELETE FROM categories WHERE id = $1", [id]);
   },
 
   // CART OPERATIONS
   async getCart(userId) {
-    if (isSQLite) {
-      const items = await this.sqliteAll(`SELECT c.bookId, c.quantity, b.title, b.author, b.category, b.price, b.image, b.stock
-                                          FROM cart_items c JOIN books b ON c.bookId = b.id WHERE c.userId = ?`, [userId]);
-      return items.map(item => ({
-        id: item.bookId,
-        title: item.title,
-        author: item.author,
-        category: item.category,
-        price: item.price,
-        image: item.image,
-        stock: item.stock,
-        quantity: item.quantity
-      }));
-    } else {
-      const userCartItems = this.jsonData.cart_items.filter(c => c.userId === userId);
-      return userCartItems.map(item => {
-        const book = this.jsonData.books.find(b => b.id === item.bookId);
-        return book ? { ...book, quantity: item.quantity } : null;
-      }).filter(Boolean);
-    }
+    const res = await pool.query(`SELECT c.bookId as id, c.quantity, b.title, b.author, b.category, b.price, b.image, b.stock
+                                        FROM cart_items c JOIN books b ON c.bookId = b.id WHERE c.userId = $1`, [userId]);
+    return res.rows.map(item => ({
+      id: item.id,
+      title: item.title,
+      author: item.author,
+      category: item.category,
+      price: Number(item.price), // Postgres numerics return as strings
+      image: item.image,
+      stock: item.stock,
+      quantity: item.quantity
+    }));
   },
 
   async addToCart(userId, bookId, quantity) {
-    if (isSQLite) {
-      await this.sqliteRun("INSERT INTO cart_items (userId, bookId, quantity) VALUES (?, ?, ?) ON CONFLICT(userId, bookId) DO UPDATE SET quantity = quantity + EXCLUDED.quantity", [userId, bookId, quantity]);
-    } else {
-      const item = this.jsonData.cart_items.find(c => c.userId === userId && c.bookId === Number(bookId));
-      if (item) {
-        item.quantity += Number(quantity);
-      } else {
-        this.jsonData.cart_items.push({ userId, bookId: Number(bookId), quantity: Number(quantity) });
-      }
-      this.saveJson();
-    }
+    await pool.query(`INSERT INTO cart_items (userId, bookId, quantity) VALUES ($1, $2, $3) 
+                      ON CONFLICT (userId, bookId) DO UPDATE SET quantity = cart_items.quantity + EXCLUDED.quantity`, [userId, bookId, quantity]);
   },
 
   async updateCartItem(userId, bookId, quantity) {
-    if (isSQLite) {
-      if (quantity <= 0) {
-        await this.sqliteRun("DELETE FROM cart_items WHERE userId = ? AND bookId = ?", [userId, bookId]);
-      } else {
-        await this.sqliteRun("UPDATE cart_items SET quantity = ? WHERE userId = ? AND bookId = ?", [quantity, userId, bookId]);
-      }
+    if (quantity <= 0) {
+      await pool.query("DELETE FROM cart_items WHERE userId = $1 AND bookId = $2", [userId, bookId]);
     } else {
-      if (quantity <= 0) {
-        this.jsonData.cart_items = this.jsonData.cart_items.filter(c => !(c.userId === userId && c.bookId === Number(bookId)));
-      } else {
-        const item = this.jsonData.cart_items.find(c => c.userId === userId && c.bookId === Number(bookId));
-        if (item) {
-          item.quantity = Number(quantity);
-        }
-      }
-      this.saveJson();
+      await pool.query("UPDATE cart_items SET quantity = $1 WHERE userId = $2 AND bookId = $3", [quantity, userId, bookId]);
     }
   },
 
   async removeFromCart(userId, bookId) {
-    if (isSQLite) {
-      await this.sqliteRun("DELETE FROM cart_items WHERE userId = ? AND bookId = ?", [userId, bookId]);
-    } else {
-      this.jsonData.cart_items = this.jsonData.cart_items.filter(c => !(c.userId === userId && c.bookId === Number(bookId)));
-      this.saveJson();
-    }
+    await pool.query("DELETE FROM cart_items WHERE userId = $1 AND bookId = $2", [userId, bookId]);
   },
 
   async clearCart(userId) {
-    if (isSQLite) {
-      await this.sqliteRun("DELETE FROM cart_items WHERE userId = ?", [userId]);
-    } else {
-      this.jsonData.cart_items = this.jsonData.cart_items.filter(c => c.userId !== userId);
-      this.saveJson();
-    }
+    await pool.query("DELETE FROM cart_items WHERE userId = $1", [userId]);
   },
 
   async mergeCart(userId, cartItems) {
@@ -600,58 +309,33 @@ const DB = {
 
   // WISHLIST OPERATIONS
   async getWishlist(userId) {
-    if (isSQLite) {
-      const items = await this.sqliteAll(`SELECT w.bookId, b.title, b.author, b.category, b.price, b.image, b.stock, b.rating
-                                          FROM wishlist_items w JOIN books b ON w.bookId = b.id WHERE w.userId = ?`, [userId]);
-      return items.map(item => ({
-        id: item.bookId,
-        title: item.title,
-        author: item.author,
-        category: item.category,
-        price: item.price,
-        image: item.image,
-        stock: item.stock,
-        rating: item.rating
-      }));
-    } else {
-      const userWishItems = this.jsonData.wishlist_items.filter(w => w.userId === userId);
-      return userWishItems.map(item => {
-        return this.jsonData.books.find(b => b.id === item.bookId);
-      }).filter(Boolean);
-    }
+    const res = await pool.query(`SELECT w.bookId as id, b.title, b.author, b.category, b.price, b.image, b.stock, b.rating
+                                        FROM wishlist_items w JOIN books b ON w.bookId = b.id WHERE w.userId = $1`, [userId]);
+    return res.rows.map(item => ({
+      id: item.id,
+      title: item.title,
+      author: item.author,
+      category: item.category,
+      price: Number(item.price),
+      image: item.image,
+      stock: item.stock,
+      rating: Number(item.rating)
+    }));
   },
 
   async toggleWishlist(userId, bookId) {
-    if (isSQLite) {
-      const exists = await this.sqliteGet("SELECT 1 FROM wishlist_items WHERE userId = ? AND bookId = ?", [userId, bookId]);
-      if (exists) {
-        await this.sqliteRun("DELETE FROM wishlist_items WHERE userId = ? AND bookId = ?", [userId, bookId]);
-        return { action: 'removed' };
-      } else {
-        await this.sqliteRun("INSERT INTO wishlist_items (userId, bookId) VALUES (?, ?)", [userId, bookId]);
-        return { action: 'added' };
-      }
+    const exists = await pool.query("SELECT 1 FROM wishlist_items WHERE userId = $1 AND bookId = $2", [userId, bookId]);
+    if (exists.rows.length > 0) {
+      await pool.query("DELETE FROM wishlist_items WHERE userId = $1 AND bookId = $2", [userId, bookId]);
+      return { action: 'removed' };
     } else {
-      const idx = this.jsonData.wishlist_items.findIndex(w => w.userId === userId && w.bookId === Number(bookId));
-      if (idx !== -1) {
-        this.jsonData.wishlist_items.splice(idx, 1);
-        this.saveJson();
-        return { action: 'removed' };
-      } else {
-        this.jsonData.wishlist_items.push({ userId, bookId: Number(bookId) });
-        this.saveJson();
-        return { action: 'added' };
-      }
+      await pool.query("INSERT INTO wishlist_items (userId, bookId) VALUES ($1, $2)", [userId, bookId]);
+      return { action: 'added' };
     }
   },
 
   async removeFromWishlist(userId, bookId) {
-    if (isSQLite) {
-      await this.sqliteRun("DELETE FROM wishlist_items WHERE userId = ? AND bookId = ?", [userId, bookId]);
-    } else {
-      this.jsonData.wishlist_items = this.jsonData.wishlist_items.filter(w => !(w.userId === userId && w.bookId === Number(bookId)));
-      this.saveJson();
-    }
+    await pool.query("DELETE FROM wishlist_items WHERE userId = $1 AND bookId = $2", [userId, bookId]);
   },
 
   // ORDER OPERATIONS
@@ -669,204 +353,84 @@ const DB = {
     const shippingAddress = `${firstName} ${lastName}, ${address}, ${city}, ${state} ${zipCode}, ${country}`;
     const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-    if (isSQLite) {
-      await this.sqliteRun(
-        `INSERT INTO orders (
-          id, userId, date, total, status, shippingAddress, paymentMethod,
-          paymentStatus, paymentGateway, razorpayOrderId, razorpayPaymentId,
-          subtotal, tax, shipping, discount, email, phone,
-          firstName, lastName, city, state, zipCode, country, shippingMethod
-        ) VALUES (?, ?, ?, ?, 'Pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          orderId, userId, date, Number(total), shippingAddress, paymentMethod,
-          paymentStatus, paymentGateway, razorpayOrderId, razorpayPaymentId,
-          Number(subtotal), Number(tax), Number(shipping), Number(discount), email, phone,
-          firstName, lastName, city, state, zipCode, country, shippingMethod
-        ]
-      );
-      
-      for (const item of items) {
-        await this.sqliteRun("INSERT INTO order_items (orderId, bookId, qty, price) VALUES (?, ?, ?, ?)", [orderId, item.id, item.quantity, item.price]);
-        // Reduce book stock
-        await this.sqliteRun("UPDATE books SET stock = MAX(0, stock - ?) WHERE id = ?", [item.quantity, item.id]);
-      }
-      await this.clearCart(userId);
-      return { 
-        id: orderId, status: 'Pending', date, total, shippingAddress, 
+    await pool.query(
+      `INSERT INTO orders (
+        id, userId, date, total, status, shippingAddress, paymentMethod,
         paymentStatus, paymentGateway, razorpayOrderId, razorpayPaymentId,
         subtotal, tax, shipping, discount, email, phone,
         firstName, lastName, city, state, zipCode, country, shippingMethod
-      };
-    } else {
-      const newOrder = {
-        id: orderId,
-        userId,
-        date,
-        total: Number(total),
-        status: 'Pending',
-        shippingAddress,
-        paymentMethod,
-        paymentStatus,
-        paymentGateway,
-        razorpayOrderId,
-        razorpayPaymentId,
-        subtotal: Number(subtotal),
-        tax: Number(tax),
-        shipping: Number(shipping),
-        discount: Number(discount),
-        email,
-        phone,
-        firstName,
-        lastName,
-        city,
-        state,
-        zipCode,
-        country,
-        shippingMethod,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      this.jsonData.orders.push(newOrder);
-
-      for (const item of items) {
-        this.jsonData.order_items.push({
-          orderId,
-          bookId: item.id,
-          qty: item.quantity,
-          price: item.price
-        });
-        // Reduce stock
-        const book = this.jsonData.books.find(b => b.id === item.id);
-        if (book) {
-          book.stock = Math.max(0, book.stock - item.quantity);
-        }
-      }
-
-      this.jsonData.cart_items = this.jsonData.cart_items.filter(c => c.userId !== userId);
-      this.saveJson();
-      return newOrder;
+      ) VALUES ($1, $2, $3, $4, 'Pending', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)`,
+      [
+        orderId, userId, date, Number(total), shippingAddress, paymentMethod,
+        paymentStatus, paymentGateway, razorpayOrderId, razorpayPaymentId,
+        Number(subtotal), Number(tax), Number(shipping), Number(discount), email, phone,
+        firstName, lastName, city, state, zipCode, country, shippingMethod
+      ]
+    );
+    
+    for (const item of items) {
+      await pool.query("INSERT INTO order_items (orderId, bookId, qty, price) VALUES ($1, $2, $3, $4)", [orderId, item.id, item.quantity, item.price]);
+      // Reduce book stock
+      await pool.query("UPDATE books SET stock = GREATEST(0, stock - $1) WHERE id = $2", [item.quantity, item.id]);
     }
+    await this.clearCart(userId);
+    return { 
+      id: orderId, status: 'Pending', date, total, shippingAddress, 
+      paymentStatus, paymentGateway, razorpayOrderId, razorpayPaymentId,
+      subtotal, tax, shipping, discount, email, phone,
+      firstName, lastName, city, state, zipCode, country, shippingMethod
+    };
   },
 
   async getOrders(userId, isAdmin = false) {
-    if (isSQLite) {
-      if (isAdmin) {
-        const orders = await this.sqliteAll(`SELECT o.*, u.name as customer, u.email FROM orders o JOIN users u ON o.userId = u.id`);
-        for (let o of orders) {
-          const items = await this.sqliteAll(`SELECT oi.qty, oi.price, b.title, b.author FROM order_items oi JOIN books b ON oi.bookId = b.id WHERE oi.orderId = ?`, [o.id]);
-          o.items = items.length;
-          o.orderItems = items;
-        }
-        return orders;
-      } else {
-        const orders = await this.sqliteAll("SELECT * FROM orders WHERE userId = ? ORDER BY date DESC", [userId]);
-        for (let o of orders) {
-          const items = await this.sqliteAll(`SELECT oi.qty, oi.price, b.title, b.author FROM order_items oi JOIN books b ON oi.bookId = b.id WHERE oi.orderId = ?`, [o.id]);
-          o.items = items;
-        }
-        return orders;
+    let orders;
+    if (isAdmin) {
+      const res = await pool.query(`SELECT o.*, u.name as customer, u.email FROM orders o JOIN users u ON o.userId = u.id`);
+      orders = res.rows;
+      for (let o of orders) {
+        const items = await pool.query(`SELECT oi.qty, oi.price, b.title, b.author FROM order_items oi JOIN books b ON oi.bookId = b.id WHERE oi.orderId = $1`, [o.id]);
+        o.items = items.rows.length;
+        o.orderItems = items.rows;
       }
     } else {
-      let orders = this.jsonData.orders;
-      if (!isAdmin) {
-        orders = orders.filter(o => o.userId === userId);
+      const res = await pool.query("SELECT * FROM orders WHERE userId = $1 ORDER BY date DESC", [userId]);
+      orders = res.rows;
+      for (let o of orders) {
+        const items = await pool.query(`SELECT oi.qty, oi.price, b.title, b.author FROM order_items oi JOIN books b ON oi.bookId = b.id WHERE oi.orderId = $1`, [o.id]);
+        o.items = items.rows;
       }
-      return orders.map(o => {
-        const user = this.jsonData.users.find(u => u.id === o.userId);
-        const oItems = this.jsonData.order_items.filter(oi => oi.orderId === o.id).map(oi => {
-          const book = this.jsonData.books.find(b => b.id === oi.bookId);
-          return {
-            qty: oi.qty,
-            price: oi.price,
-            title: book ? book.title : 'Unknown Book',
-            author: book ? book.author : 'Unknown Author'
-          };
-        });
-        return {
-          ...o,
-          customer: user ? user.name : 'Unknown User',
-          email: user ? user.email : '',
-          items: isAdmin ? oItems.length : oItems,
-          orderItems: oItems
-        };
-      });
     }
+    return orders;
   },
 
   async getOrderById(id, userId, isAdmin = false) {
-    if (isSQLite) {
-      let order;
-      if (isAdmin) {
-        order = await this.sqliteGet(`SELECT o.*, u.name as customer, u.email FROM orders o JOIN users u ON o.userId = u.id WHERE o.id = ?`, [id]);
-      } else {
-        order = await this.sqliteGet("SELECT * FROM orders WHERE id = ? AND userId = ?", [id, userId]);
-      }
-      if (order) {
-        const items = await this.sqliteAll(`SELECT oi.qty, oi.price, b.title, b.author FROM order_items oi JOIN books b ON oi.bookId = b.id WHERE oi.orderId = ?`, [id]);
-        order.items = items;
-      }
-      return order;
+    let order;
+    if (isAdmin) {
+      const res = await pool.query(`SELECT o.*, u.name as customer, u.email FROM orders o JOIN users u ON o.userId = u.id WHERE o.id = $1`, [id]);
+      order = res.rows[0];
     } else {
-      const order = this.jsonData.orders.find(o => o.id === id && (isAdmin || o.userId === userId));
-      if (!order) return null;
-      const user = this.jsonData.users.find(u => u.id === order.userId);
-      const items = this.jsonData.order_items.filter(oi => oi.orderId === order.id).map(oi => {
-        const book = this.jsonData.books.find(b => b.id === oi.bookId);
-        return {
-          qty: oi.qty,
-          price: oi.price,
-          title: book ? book.title : 'Unknown Book',
-          author: book ? book.author : 'Unknown Author'
-        };
-      });
-      return {
-        ...order,
-        customer: user ? user.name : 'Unknown User',
-        email: user ? user.email : '',
-        items
-      };
+      const res = await pool.query("SELECT * FROM orders WHERE id = $1 AND userId = $2", [id, userId]);
+      order = res.rows[0];
     }
+    if (order) {
+      const items = await pool.query(`SELECT oi.qty, oi.price, b.title, b.author FROM order_items oi JOIN books b ON oi.bookId = b.id WHERE oi.orderId = $1`, [id]);
+      order.items = items.rows;
+    }
+    return order;
   },
 
   async updateOrderStatus(id, status) {
-    if (isSQLite) {
-      await this.sqliteRun("UPDATE orders SET status = ? WHERE id = ?", [status, id]);
-    } else {
-      const order = this.jsonData.orders.find(o => o.id === id);
-      if (order) {
-        order.status = status;
-        this.saveJson();
-      }
-    }
+    await pool.query("UPDATE orders SET status = $1 WHERE id = $2", [status, id]);
   },
 
   async trackOrder(orderId, email) {
-    if (isSQLite) {
-      const order = await this.sqliteGet(`SELECT o.*, u.email FROM orders o JOIN users u ON o.userId = u.id WHERE o.id = ? AND u.email = ?`, [orderId, email]);
-      if (order) {
-        const items = await this.sqliteAll(`SELECT oi.qty, oi.price, b.title, b.author FROM order_items oi JOIN books b ON oi.bookId = b.id WHERE oi.orderId = ?`, [orderId]);
-        order.items = items;
-      }
-      return order;
-    } else {
-      const order = this.jsonData.orders.find(o => o.id.toLowerCase() === orderId.toLowerCase());
-      if (!order) return null;
-      const user = this.jsonData.users.find(u => u.id === order.userId);
-      if (!user || user.email.toLowerCase() !== email.toLowerCase()) return null;
-      const items = this.jsonData.order_items.filter(oi => oi.orderId === order.id).map(oi => {
-        const book = this.jsonData.books.find(b => b.id === oi.bookId);
-        return {
-          qty: oi.qty,
-          price: oi.price,
-          title: book ? book.title : 'Unknown Book',
-          author: book ? book.author : 'Unknown Author'
-        };
-      });
-      return {
-        ...order,
-        items
-      };
+    const res = await pool.query(`SELECT o.*, u.email FROM orders o JOIN users u ON o.userId = u.id WHERE o.id = $1 AND u.email = $2`, [orderId, email]);
+    const order = res.rows[0];
+    if (order) {
+      const items = await pool.query(`SELECT oi.qty, oi.price, b.title, b.author FROM order_items oi JOIN books b ON oi.bookId = b.id WHERE oi.orderId = $1`, [orderId]);
+      order.items = items.rows;
     }
+    return order;
   }
 };
 
