@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.PROD ? 'https://bookhub-iat3.onrender.com/api' : 'http://localhost:5000/api', // Backend server URL
+  baseURL: import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://bookhub-iat3.onrender.com/api' : 'http://localhost:5000/api'), // Backend server URL
   headers: {
     'Content-Type': 'application/json',
   },
