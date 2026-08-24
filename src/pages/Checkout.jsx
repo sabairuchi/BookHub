@@ -144,6 +144,38 @@ const Checkout = () => {
           couponCode: couponCode
         });
 
+        // 3. Simulation Mode for Placeholder Keys
+        const isPlaceholder = rzpSession.key_id === 'rzp_test_your_key_id' || !rzpSession.key_id || rzpSession.key_id.includes('your_key_id');
+
+        if (isPlaceholder) {
+          const confirmPayment = window.confirm(
+            `[Demo Mode] Simulating secure payment via Razorpay\n\nTotal Amount: $${finalTotal.toFixed(2)}\n\nClick OK to simulate payment success, or Cancel to simulate payment failure.`
+          );
+
+          if (confirmPayment) {
+            const mockResponse = {
+              razorpay_order_id: rzpSession.order_id,
+              razorpay_payment_id: 'pay_mock_' + Math.floor(100000 + Math.random() * 900000),
+              razorpay_signature: 'sig_mock_' + Math.floor(100000 + Math.random() * 900000)
+            };
+
+            const paymentDetails = {
+              razorpay_order_id: mockResponse.razorpay_order_id,
+              razorpay_payment_id: mockResponse.razorpay_payment_id,
+              razorpay_signature: mockResponse.razorpay_signature,
+              checkoutData: orderData
+            };
+
+            const verifiedOrder = await orderAPI.verifyPayment(paymentDetails);
+            await clearCart();
+            navigate('/order-success', { state: { order: verifiedOrder } });
+          } else {
+            console.log("Mock payment cancelled by user.");
+            setIsSubmitting(false);
+          }
+          return;
+        }
+
         const options = {
           key: rzpSession.key_id,
           amount: rzpSession.amount,
