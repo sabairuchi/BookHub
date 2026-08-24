@@ -477,6 +477,26 @@ const requireAdmin = async (req, res, next) => {
 
 // API ROUTES
 
+// Health Check Endpoint
+app.get('/api/health', async (req, res) => {
+  const diagnostics = {
+    database: 'Checking...',
+    geminiKeySet: !!process.env.GEMINI_API_KEY,
+    databaseUrlSet: !!process.env.DATABASE_URL,
+    nodeEnv: process.env.NODE_ENV || 'not set',
+    nodeVersion: process.version
+  };
+
+  try {
+    const dbCheck = await pool.query('SELECT NOW()');
+    diagnostics.database = 'Connected successfully at ' + dbCheck.rows[0].now;
+    res.json(diagnostics);
+  } catch (err) {
+    diagnostics.database = 'Failed: ' + err.message;
+    res.status(500).json(diagnostics);
+  }
+});
+
 // Auth Endpoints
 app.post('/api/auth/register', async (req, res) => {
   try {
