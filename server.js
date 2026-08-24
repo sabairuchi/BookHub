@@ -948,27 +948,24 @@ app.post('/api/checkout/verify-payment', authenticateToken, async (req, res) => 
     }
 
     // Check for duplicate order (Idempotency check)
-    let existingOrder = null;
-    if (isSQLite) {
-      existingOrder = await DB.sqliteGet("SELECT * FROM orders WHERE razorpayOrderId = ?", [razorpay_order_id]);
-    } else {
-      existingOrder = DB.jsonData.orders.find(o => o.razorpayOrderId === razorpay_order_id);
-    }
+    const existingOrderRes = await pool.query("SELECT * FROM orders WHERE razorpayOrderId = $1", [razorpay_order_id]);
+    const existingOrder = existingOrderRes.rows[0];
     
     if (existingOrder) {
       console.log(`Duplicate payment request for Razorpay Order: ${razorpay_order_id}. Returning existing order.`);
-      const items = isSQLite 
-        ? await DB.sqliteAll(`SELECT oi.qty, oi.price, b.title, b.author FROM order_items oi JOIN books b ON oi.bookId = b.id WHERE oi.orderId = ?`, [existingOrder.id])
-        : DB.jsonData.order_items.filter(oi => oi.orderId === existingOrder.id).map(oi => {
-            const book = DB.jsonData.books.find(b => b.id === oi.bookId);
-            return {
-              qty: oi.qty,
-              price: oi.price,
-              title: book ? book.title : 'Unknown Book',
-              author: book ? book.author : 'Unknown Author'
-            };
-          });
-      existingOrder.items = items;
+      const itemsRes = await pool.query(
+        `SELECT oi.qty, oi.price, b.title, b.author 
+         FROM order_items oi 
+         JOIN books b ON oi.bookId = b.id 
+         WHERE oi.orderId = $1`, 
+        [existingOrder.id]
+      );
+      existingOrder.items = itemsRes.rows.map(oi => ({
+        qty: oi.qty,
+        price: Number(oi.price),
+        title: oi.title,
+        author: oi.author
+      }));
       return res.json(existingOrder);
     }
 
