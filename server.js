@@ -12,8 +12,13 @@ import Razorpay from 'razorpay';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 import { books as mockBooks, categories as mockCategories } from './src/data/mockData.js';
+import { GoogleGenAI } from '@google/genai';
+import rateLimit from 'express-rate-limit';
 
 dotenv.config();
+
+// Initialize Gemini API
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1096,6 +1101,81 @@ app.put('/api/customers/:id/status', authenticateToken, requireAdmin, async (req
     res.json({ message: 'Customer status updated successfully.' });
   } catch (err) {
     res.status(500).json({ message: 'Server error updating customer status.' });
+  }
+});
+
+// Rate Limiter for AI
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // limit each IP to 20 requests per windowMs
+  message: { message: 'Too many requests to AI Assistant. Please try again later.' }
+});
+
+// AI Chat Endpoint
+app.post('/api/ai/chat', aiLimiter, async (req, res) => {
+  try {
+    const { messages, contextBookId } = req.body;
+    
+    // Fetch catalog
+    const catalog = await DB.getBooks();
+    const cleanCatalog = catalog.map(b => ({
+      id: b.id,
+      title: b.title,
+      author: b.author,
+      category: b.category,
+      price: b.price,
+      description: b.description
+    }));
+
+    let systemInstruction = `You are a helpful AI Book Recommendation & Customer Support Assistant for "Book Hub". 
+Your strict instructions:
+1. For recommendations, you MUST ONLY suggest books from the provided catalog data. Do NOT invent books, titles, authors, or prices.
+2. If a requested type of book is not in the catalog, politely say we don't have it and suggest the closest alternative from the catalog.
+3. Format book recommendations clearly. If you recommend a book, mention its Title, Author, Price, and why. You MUST provide the book's exact ID from the catalog so the frontend can link to it. 
+   Format recommendations like this:
+   **You might like:**
+   [Title] by [Author] - $[Price]
+   Reason: [Your reason]
+   (ID: [ID])
+4. Answer customer support queries based on standard e-commerce features present on our site: Cart, Wishlist, Checkout, Orders (which can be viewed in order history). Do not invent refund/return policies if asked, just direct them to support@bookhub.com.
+
+Here is the full Book Hub catalog in JSON format:
+${JSON.stringify(cleanCatalog)}
+`;
+
+    if (contextBookId) {
+      const currentBook = catalog.find(b => b.id === Number(contextBookId));
+      if (currentBook) {
+         systemInstruction += `\n\nThe user is currently viewing the book: "${currentBook.title}" by ${currentBook.author}. Use this context to help them if they ask for "similar books" or "this book".`;
+      }
+    }
+
+    // Filter out the initial greeting if it is a model message to ensure contents start with a user message
+    let filteredMessages = messages;
+    if (filteredMessages.length > 0 && filteredMessages[0].role !== 'user') {
+      filteredMessages = filteredMessages.slice(1);
+    }
+
+    const geminiMessages = filteredMessages.map(m => ({
+      role: m.role === 'user' ? 'user' : 'model',
+      parts: [{ text: m.content }]
+    }));
+
+    // Start a chat session or use generateContent directly.
+    // The @google/genai package uses `ai.chats.create` or `ai.models.generateContent`
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.6-flash',
+      config: {
+        systemInstruction,
+        temperature: 0.3
+      },
+      contents: geminiMessages
+    });
+
+    res.json({ message: response.text });
+  } catch (err) {
+    console.error('AI Error:', err);
+    res.status(500).json({ message: 'The AI assistant is temporarily unavailable. Please try again later.' });
   }
 });
 

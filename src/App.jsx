@@ -6,6 +6,7 @@ import Footer from './components/Footer';
 import { ShopProvider } from './context/ShopContext';
 import LoginModal from './components/LoginModal';
 import ScrollToTop from './components/ScrollToTop';
+import AIAssistant from './components/AIAssistant';
 import './App.css';
 
 // Lazy loading pages for performance optimization
@@ -89,6 +90,7 @@ function App() {
               <Route path="/admin/*" element={null} />
               <Route path="*" element={<Footer />} />
             </Routes>
+            <AIAssistant />
           </div>
         </Router>
       </ShopProvider>

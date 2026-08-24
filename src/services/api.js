@@ -165,5 +165,12 @@ export const customerAPI = {
   },
 };
 
+export const aiAPI = {
+  chat: async (messages, contextBookId) => {
+    const { data } = await api.post('/ai/chat', { messages, contextBookId });
+    return data;
+  }
+};
+
 export default api;
 
