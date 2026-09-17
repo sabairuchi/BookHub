@@ -1,12 +1,13 @@
 import React from 'react';
-import { useShop } from '../context/ShopContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { Trash2, ShoppingBag } from 'lucide-react';
+import { Trash2, ArrowLeft, ShoppingBag } from 'lucide-react';
+import { useShop } from '../context/ShopContext';
 import SEO from '../components/SEO';
+import SafeImage from '../components/SafeImage';
 import './Cart.css';
 
 const Cart = () => {
-  const { cart, cartTotal, removeFromCart, updateQuantity, clearCart } = useShop();
+  const { cart, removeFromCart, updateQuantity, cartTotal, clearCart } = useShop();
   const navigate = useNavigate();
 
   const handleCheckout = () => {
@@ -19,12 +20,14 @@ const Cart = () => {
 
   if (cart.length === 0) {
     return (
-      <div className="cart-empty container">
+      <div className="cart-page container empty-cart">
         <SEO title="Your Cart" description="View items in your Book Hub shopping cart." />
-        <ShoppingBag size={64} className="empty-icon" />
-        <h2>Your cart is empty</h2>
-        <p>Looks like you haven't added anything yet.</p>
-        <Link to="/shop" className="btn btn-primary">Start Shopping</Link>
+        <div className="empty-cart-content">
+          <ShoppingBag size={64} color="#A0AEC0" />
+          <h2>Your cart is empty</h2>
+          <p>Looks like you haven't added any books to your cart yet.</p>
+          <Link to="/shop" className="btn btn-primary">Explore Books</Link>
+        </div>
       </div>
     );
   }
@@ -37,7 +40,7 @@ const Cart = () => {
         <div className="cart-items">
           {cart.map(item => (
             <div key={item.id} className="cart-item">
-              <img src={item.image} alt={item.title} className="cart-item-image" />
+              <SafeImage src={item.image} alt={item.title} className="cart-item-image" />
               <div className="cart-item-details">
                 <h3>{item.title}</h3>
                 <p className="cart-item-author">{item.author}</p>

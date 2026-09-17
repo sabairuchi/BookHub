@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import SafeImage from '../SafeImage';
 
 const OrderSummary = ({ 
   cart, 
@@ -21,7 +22,7 @@ const OrderSummary = ({
       <div className="summary-items">
         {cart.map(item => (
           <div key={item.id} className="summary-item">
-            <img src={item.image} alt={item.title} className="summary-item-img" />
+            <SafeImage src={item.image} alt={item.title} className="summary-item-img" />
             <div className="summary-item-details">
               <h4>{item.title}</h4>
               <p>{item.author}</p>

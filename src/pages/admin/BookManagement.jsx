@@ -3,6 +3,7 @@ import { Plus, Search, Edit2, Trash2, X } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { bookAPI } from '../../services/api';
 import SEO from '../../components/SEO';
+import SafeImage from '../../components/SafeImage';
 import './BookManagement.css';
 
 const BookManagement = () => {
@@ -141,7 +142,7 @@ const BookManagement = () => {
               {filteredBooks.map((book) => (
                 <tr key={book.id}>
                   <td>
-                    <img src={book.image} alt={book.title} className="table-img" />
+                    <SafeImage src={book.image} alt={book.title} className="table-img" />
                   </td>
                   <td>
                     <div className="book-meta">

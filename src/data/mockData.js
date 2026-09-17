@@ -176,7 +176,7 @@ export const books = [
     price: 21.99,
     description: "A modern approach to building successful startups.",
     rating: 4.7,
-    image: "https://images.unsplash.com/photo-1556761175-5973dc0f32b7?auto=format&fit=crop&q=80&w=600",
+    image: "https://images.unsplash.com/photo-1553729459-efe14ef6055d?auto=format&fit=crop&q=80&w=600",
     isBestSeller: false,
     isNewArrival: false,
     isPublishedByUs: false
@@ -216,7 +216,7 @@ export const books = [
     price: 19.99,
     description: "A powerful memoir about education, resilience, and family.",
     rating: 4.7,
-    image: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=600",
+    image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=600",
     isBestSeller: false,
     isNewArrival: false,
     isPublishedByUs: false
@@ -229,7 +229,7 @@ export const books = [
     price: 24.99,
     description: "The inspiring memoir of the former First Lady of the United States.",
     rating: 4.9,
-    image: "https://images.unsplash.com/photo-1455390582262-044cdead27d8?auto=format&fit=crop&q=80&w=600",
+    image: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=600",
     isBestSeller: true,
     isNewArrival: false,
     isPublishedByUs: false
@@ -306,12 +306,12 @@ export const categories = [
   { id: 2, name: "Self-Help", count: 320, image: "https://images.unsplash.com/photo-1499209974431-9dddcece7f88?auto=format&fit=crop&q=80&w=600" },
   { id: 3, name: "Finance", count: 180, image: "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&q=80&w=600" },
   { id: 4, name: "Fiction", count: 1240, image: "/images/fiction_category.png" },
-  { id: 6, name: "History", count: 450, image: "https://images.unsplash.com/photo-1461360370896-922624d12aa1?auto=format&fit=crop&q=80&w=600" },
+  { id: 6, name: "History", count: 450, image: "https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&q=80&w=600" },
   { id: 7, name: "Productivity", count: 210, image: "https://images.unsplash.com/photo-1555448248-2571daf6344b?auto=format&fit=crop&q=80&w=600" },
   { id: 8, name: "Business", count: 420, image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=600" },
   { id: 9, name: "Motivation", count: 160, image: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80&w=600" },
   { id: 11, name: "Science Fiction", count: 380, image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=600" },
-  { id: 12, name: "Biography", count: 290, image: "https://images.unsplash.com/photo-1455390582262-044cdead27d8?auto=format&fit=crop&q=80&w=600" },
+  { id: 12, name: "Biography", count: 290, image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=600" },
   { id: 13, name: "Artificial Intelligence", count: 90, image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=600" },
   { id: 14, name: "Romance", count: 650, image: "https://images.unsplash.com/photo-1518621736915-f3b1c41bfd00?auto=format&fit=crop&q=80&w=600" }
 ];

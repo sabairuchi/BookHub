@@ -4,6 +4,7 @@ import { useShop } from '../context/ShopContext';
 import { Heart, ShoppingCart, Star, ArrowLeft } from 'lucide-react';
 import SEO from '../components/SEO';
 import BookCard from '../components/BookCard';
+import SafeImage from '../components/SafeImage';
 import './BookDetail.css';
 
 const BookDetail = () => {
@@ -38,7 +39,7 @@ const BookDetail = () => {
 
       <div className="book-detail-content">
         <div className="book-detail-image-wrapper">
-          <img src={book.image} alt={book.title} className="book-detail-image" />
+          <SafeImage src={book.image} alt={book.title} className="book-detail-image" />
           {book.isPublishedByUs && (
             <div className="published-badge-large">Published by Book Hub</div>
           )}
