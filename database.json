@@ -53,6 +53,15 @@
       "isAdmin": 0,
       "status": "Active",
       "createdAt": "2026-08-22T10:20:02.139Z"
+    },
+    {
+      "id": 7,
+      "name": "Ruchi sabai",
+      "email": "sabairuchi@gmail.com",
+      "password": "$2b$10$px9mD6p3aA9QRkz38Jp8.eBnAvf.KNg5Zy5Eb9/XLsrvQQNP0IPlG",
+      "isAdmin": 0,
+      "status": "Active",
+      "createdAt": "2026-09-17T15:29:50.670Z"
     }
   ],
   "books": [
