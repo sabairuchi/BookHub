@@ -12,7 +12,7 @@ const BookCard = ({ book }) => {
   return (
     <div className="book-card">
       <div className="book-cover-container">
-        {book.image ? (
+        {book.image && book.image.trim() ? (
           <Link to={`/book/${book.id}`}>
             <SafeImage src={book.image} alt={book.title} className="book-cover" />
           </Link>

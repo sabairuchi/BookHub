@@ -39,7 +39,7 @@ const BookDetail = () => {
 
       <div className="book-detail-content">
         <div className="book-detail-image-wrapper">
-          {book.image ? (
+          {book.image && book.image.trim() ? (
             <SafeImage src={book.image} alt={book.title} className="book-detail-image" />
           ) : (
             <div className="book-detail-no-image">

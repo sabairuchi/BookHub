@@ -190,12 +190,11 @@ export const books = [
     price: 25.99,
     description: "An epic science fiction novel set on the desert planet Arrakis.",
     rating: 4.8,
-    image: "/images/dune_cover.png",
+    image: " ",
     isBestSeller: false,
     isNewArrival: false,
     isPublishedByUs: false
-  },
-  {
+  }, {
     id: 18,
     title: "The Midnight Library",
     author: "Matt Haig",
@@ -203,7 +202,7 @@ export const books = [
     price: 18.99,
     description: "A moving novel about choices, regrets, and second chances.",
     rating: 4.8,
-    image: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=600",
+    image: "https://images.",
     isBestSeller: false,
     isNewArrival: false,
     isPublishedByUs: false
