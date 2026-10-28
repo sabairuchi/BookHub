@@ -33,7 +33,7 @@ export const books = [
     price: 17.99,
     description: "Learn the mindset and principles behind financial independence.",
     rating: 4.7,
-    image: "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&q=80&w=600",
+    image: "",
     isBestSeller: true,
     isNewArrival: false,
     isPublishedByUs: false

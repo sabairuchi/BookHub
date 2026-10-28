@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, ShoppingCart, Star } from 'lucide-react';
+import { Heart, ShoppingCart, Star, BookOpen } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import SafeImage from './SafeImage';
 import './BookCard.css';
@@ -12,9 +12,18 @@ const BookCard = ({ book }) => {
   return (
     <div className="book-card">
       <div className="book-cover-container">
-        <Link to={`/book/${book.id}`}>
-          <SafeImage src={book.image} alt={book.title} className="book-cover" />
-        </Link>
+        {book.image ? (
+          <Link to={`/book/${book.id}`}>
+            <SafeImage src={book.image} alt={book.title} className="book-cover" />
+          </Link>
+        ) : (
+          <Link to={`/book/${book.id}`} className="book-cover-placeholder">
+            <div className="no-image-placeholder">
+              <BookOpen size={40} className="no-image-icon" />
+              <span>No Cover Available</span>
+            </div>
+          </Link>
+        )}
         {book.isPublishedByUs && (
           <div className="published-badge">Published by Book Hub</div>
         )}
