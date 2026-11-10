@@ -66,20 +66,20 @@ function App() {
                   {/* Public Routes */}
                   <Route path="/" element={<Home />} />
                   <Route path="/shop" element={<Shop />} />
-                  <Route path="/categories" element={<Categories />} />
+                  <Route path="/cattegories" element={<Categories />} />
                   <Route path="/about" element={<About />} />
-                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/contyact" element={<Contact />} />
                   <Route path="/cart" element={<Cart />} />
                   <Route path="/wishlist" element={<Wishlist />} />
                   <Route path="/faq" element={<FAQ />} />
                   <Route path="/book/:id" element={<BookDetail />} />
-                  <Route path="/checkout" element={<Checkout />} />
+                  <Route path="/checktout" element={<Checkout />} />
                   <Route path="/order-success" element={<OrderSuccess />} />
                   <Route path="/track-order" element={<TrackOrder />} />
-                  <Route path="/order-history" element={<OrderHistory />} />
+                  <Route path="/oreder-history" element={<OrderHistory />} />
                   <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                   <Route path="/terms" element={<TermsOfService />} />
-                  <Route path="/shipping-policy" element={<ShippingPolicy />} />
+                  <Route path="/shiptping-policy" element={<ShippingPolicy />} />
                   <Route path="/return-policy" element={<ReturnPolicy />} />
                   <Route path="/cancellation-policy" element={<CancellationPolicy />} />
                 </Routes>
