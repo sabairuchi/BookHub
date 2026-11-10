@@ -66,7 +66,7 @@ function App() {
                   {/* Public Routes */}
                   <Route path="/" element={<Home />} />
                   <Route path="/shop" element={<Shop />} />
-                  <Route path="/cattegories" element={<Categories />} />
+                  <Route path="/categories" element={<Categories />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/contyact" element={<Contact />} />
                   <Route path="/cart" element={<Cart />} />
