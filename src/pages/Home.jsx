@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ArrowRight, Truck, ShieldCheck, BookOpen, Star } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import BookCard from '../components/BookCard';
@@ -8,9 +8,7 @@ import SEO from '../components/SEO';
 import './Home.css';
 
 const Home = () => {
-  const { books, categories, loading } = useShop();
-  const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
+  const { books, loading } = useShop();
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
 
@@ -20,13 +18,6 @@ const Home = () => {
 
   const bestSellers = books.filter(book => book.isBestSeller).slice(0, 4);
   const publishedBooks = books.filter(book => book.isPublishedByUs);
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/shop?query=${encodeURIComponent(searchQuery)}`);
-    }
-  };
 
   const handleSubscribe = (e) => {
     e.preventDefault();

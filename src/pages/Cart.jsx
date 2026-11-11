@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Trash2, ArrowLeft, ShoppingBag } from 'lucide-react';
+import { Trash2, ShoppingBag } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import SEO from '../components/SEO';
 import SafeImage from '../components/SafeImage';

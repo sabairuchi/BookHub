@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useShop } from '../context/ShopContext';
 import { orderAPI } from '../services/api';
-import { Package, ExternalLink } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import SEO from '../components/SEO';
 import './OrderHistory.css';

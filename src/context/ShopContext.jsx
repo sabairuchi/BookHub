@@ -82,7 +82,7 @@ export const ShopProvider = ({ children }) => {
       const userInfoStr = localStorage.getItem('userInfo');
       if (userInfoStr) {
         try {
-          const { token, username, isAdmin } = JSON.parse(userInfoStr);
+          const { token } = JSON.parse(userInfoStr);
           if (token) {
             // Verify profile from server
             const profile = await authAPI.getProfile();
