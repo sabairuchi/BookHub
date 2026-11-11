@@ -68,7 +68,7 @@ function App() {
                   <Route path="/shop" element={<Shop />} />
                   <Route path="/categories" element={<Categories />} />
                   <Route path="/about" element={<About />} />
-                  <Route path="/contyact" element={<Contact />} />
+                  <Route path="/contact" element={<Contact />} />
                   <Route path="/cart" element={<Cart />} />
                   <Route path="/wishlist" element={<Wishlist />} />
                   <Route path="/faq" element={<FAQ />} />
