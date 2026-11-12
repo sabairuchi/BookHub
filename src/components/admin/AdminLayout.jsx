@@ -20,22 +20,8 @@ const AdminLayout = () => {
 
   // Protect Admin Route: check both context and localStorage for immediate check
   useEffect(() => {
-    if (!loading) {
-      const userInfoStr = localStorage.getItem('userInfo');
-      let isAdmin = false;
-      if (userInfoStr) {
-        try {
-          const { isAdmin: adminFlag } = JSON.parse(userInfoStr);
-          isAdmin = !!adminFlag;
-        } catch (e) {
-          isAdmin = false;
-        }
-      }
-      if (!user || !isAdmin) {
-        navigate('/', { replace: true });
-      }
-    }
-  }, [user, loading, navigate]);
+    // If unauthorized, do not redirect to home - stay on 403 Forbidden
+  }, [user, loading]);
 
   const handleLogout = () => {
     logout();
@@ -59,7 +45,41 @@ const AdminLayout = () => {
   }
 
   if (!user || !isAdmin) {
-    return null; // Will redirect in useEffect
+    return (
+      <div style={{
+        margin: 0,
+        padding: '20px',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+        backgroundColor: '#ffffff',
+        color: '#000000',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        textAlign: 'center',
+        boxSizing: 'border-box'
+      }}>
+        <div style={{ fontSize: '72px', fontWeight: 700, lineHeight: 1, marginBottom: '16px', color: '#000000' }}>403</div>
+        <h1 style={{ fontSize: '24px', fontWeight: 700, margin: '0 0 12px 0', color: '#000000' }}>Forbidden</h1>
+        <p style={{ fontSize: '16px', margin: '0 0 24px 0', color: '#000000' }}>Access to this resource is denied.</p>
+        <button 
+          style={{
+            backgroundColor: 'transparent',
+            color: '#000000',
+            border: '1px solid #000000',
+            padding: '8px 20px',
+            fontSize: '14px',
+            fontWeight: 600,
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+          onClick={() => window.location.reload()}
+        >
+          Reload
+        </button>
+      </div>
+    );
   }
 
   const navItems = [

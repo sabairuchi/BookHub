@@ -8,7 +8,7 @@ import SEO from '../components/SEO';
 import './Home.css';
 
 const Home = () => {
-  const { books, loading } = useShop();
+  const { books, categories, loading } = useShop();
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
 

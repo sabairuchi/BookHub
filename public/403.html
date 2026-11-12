@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>403 Forbidden</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #ffffff;
+      color: #000000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      box-sizing: border-box;
+      padding: 20px;
+    }
+    .error-code {
+      font-size: 72px;
+      font-weight: 700;
+      line-height: 1;
+      margin: 0 0 16px 0;
+      color: #000000;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0 0 12px 0;
+      color: #000000;
+    }
+    p {
+      font-size: 16px;
+      margin: 0 0 24px 0;
+      color: #000000;
+    }
+    .reload-btn {
+      background-color: transparent;
+      color: #000000;
+      border: 1px solid #000000;
+      padding: 8px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .reload-btn:hover {
+      background-color: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  <div class="error-code">403</div>
+  <h1>Forbidden</h1>
+  <p>Access to this resource is denied.</p>
+  <button class="reload-btn" onclick="window.location.reload()">Reload</button>
+</body>
+</html>
+
